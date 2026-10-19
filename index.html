@@ -1,0 +1,2166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>智能驿站 · 人机协同取件方案 EaseTurn</title>
+<style>
+:root{
+ --bg:#0a0e17;--panel:#111a2b;--line:#22304a;--txt:#e8eeff;--dim:#7c8bad;
+ --ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--acc:#3b82f6;--cyan:#22d3ee;
+ --c0:#ef4444;--c1:#f97316;--c2:#facc15;--c3:#22c55e;--c4:#22d3ee;--c5:#3b82f6;--c6:#a855f7;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+ font-family:"Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+ background:radial-gradient(1200px 600px at 50% -10%,#132038,#060910 70%);
+ color:var(--txt);min-height:100vh;font-size:14px;
+ padding:14px;padding-bottom:calc(16px + env(safe-area-inset-bottom));
+}
+body.night{--bg:#05070c;filter:saturate(.82)}
+body.night .slot,body.night .kpi,body.night .panel{opacity:.94}
+header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:11px}
+h1{font-size:22px;letter-spacing:1.2px;font-weight:800}
+h1 em{font-style:normal;color:var(--cyan)}
+.sub{font-size:11px;color:#5f7096;margin-top:3px}
+.tag{font-size:11px;color:#93c5fd;background:#16233c;border:1px solid #2b3a58;border-radius:6px;padding:2px 7px;margin-left:5px}
+.tools{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--dim);flex-wrap:wrap}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;background:#64748b;vertical-align:1px}
+.dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.dot.off{background:var(--err);box-shadow:0 0 8px var(--err)}
+button{font-family:inherit;font-size:13px;cursor:pointer;padding:8px 13px;min-height:38px;border-radius:8px;
+ background:linear-gradient(180deg,#2b3a5c,#1e2942);color:#cfe0ff;border:1px solid #33456b;transition:.15s}
+button:hover{background:linear-gradient(180deg,#365084,#243154);border-color:#4a6ba8}
+button:active{transform:translateY(1px)}
+button.primary{background:linear-gradient(180deg,#2563eb,#1d4ed8);border-color:#3b82f6;color:#fff}
+button.ok{background:linear-gradient(180deg,#16a34a,#15803d);border-color:#22c55e;color:#fff}
+button.warn{background:linear-gradient(180deg,#f59e0b,#d97706);border-color:#f59e0b;color:#111}
+button.err{background:linear-gradient(180deg,#ef4444,#b91c1c);border-color:#ef4444;color:#fff}
+button.ghost{background:#0e1624;color:#9fb6de}
+button.active{border-color:var(--cyan);color:#a5f3fc;box-shadow:0 0 0 1px rgba(34,211,238,.35) inset}
+button:disabled{opacity:.35;cursor:not-allowed;transform:none}
+input,select{width:100%;font-family:inherit;font-size:16px;padding:9px 11px;background:#0b1322;
+ border:1px solid #2b3a58;border-radius:8px;color:#eaf2ff;outline:none;transition:.15s}
+select{font-size:15px}
+input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(59,130,246,.18)}
+input::placeholder{color:#4d5c7d}
+.modebar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:12px;
+ background:linear-gradient(180deg,#101a2c,#0c1422);border:1px solid var(--line);border-radius:14px;padding:12px}
+.mode{display:flex;flex-direction:column;gap:5px;min-width:0}
+.mode label{font-size:11px;color:#8fa3c8;display:flex;gap:6px;align-items:center}
+.mode label i{font-style:normal;font-size:10px;color:#52618a}
+.mode .why{font-size:10px;color:#5f7096;line-height:1.5}
+.kpis{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:9px;margin-bottom:12px}
+.kpi{background:linear-gradient(180deg,#111a2b,#0d1523);border:1px solid var(--line);border-radius:12px;padding:9px 10px}
+.kpi span{font-size:11px;color:var(--dim);display:block}
+.kpi b{font-size:20px;font-weight:700;line-height:1.3;color:var(--txt)}
+.kpi i{font-style:normal;font-size:10px;color:#525f7d}
+.kpi.good b{color:var(--ok)}.kpi.hot b{color:var(--warn)}.kpi.bad b{color:var(--err)}.kpi.cool b{color:var(--cyan)}
+.stage{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.panel{background:linear-gradient(180deg,#111a2b,#0d1523);border:1px solid var(--line);border-radius:14px;padding:13px;
+ display:flex;flex-direction:column;gap:10px;min-width:0}
+.panel>h2{font-size:13px;color:#93a6cc;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.panel>h2 b{background:#1e2c46;color:var(--cyan);border-radius:6px;padding:2px 8px;font-size:12px}
+.panel>h2 em{font-style:normal;font-size:10px;color:#6b7ba0;margin-left:auto}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;color:var(--dim)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1;min-width:0}
+.result{background:#0b1322;border:1px dashed #2b3a58;border-radius:10px;padding:10px;font-size:12px;
+ color:var(--dim);min-height:86px;line-height:1.7;white-space:pre-wrap;word-break:break-all}
+.result .big{font-size:20px;color:var(--ok);letter-spacing:1px;font-weight:700}
+.result .bigw{font-size:18px;color:var(--warn);font-weight:700}
+.result .bige{font-size:18px;color:var(--err);font-weight:700}
+.result div{padding:1px 0}
+.guide{background:linear-gradient(180deg,#0c1a2e,#0a1524);border:1px solid #2f4a76;border-radius:11px;padding:10px 12px;display:none}
+.guide.show{display:block}
+.guide .g1{font-size:11px;color:#7dd3fc;letter-spacing:1px}
+.guide .g2{font-size:19px;font-weight:800;color:#e8eeff;margin:3px 0;letter-spacing:.5px}
+.guide .g2 u{text-decoration:none;color:var(--cyan);font-size:22px}
+.guide .g3{font-size:11px;color:#6b7ba0;line-height:1.6}
+.meter{height:6px;border-radius:3px;background:#16233c;overflow:hidden}
+.meter i{display:block;height:100%;background:linear-gradient(90deg,#22c55e,#f59e0b);width:0;transition:width .3s}
+.hint{font-size:11px;color:#5c6b8c;line-height:1.65}
+.list{background:#0b1322;border:1px dashed #2b3a58;border-radius:10px;padding:8px 10px;font-size:12px;color:var(--dim);
+ max-height:158px;overflow-y:auto}
+.item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #131d2e}
+.item:last-child{border-bottom:0}
+.item.on{color:#86efac}
+.item.pend{color:#fbbf24}
+.item .lb{display:flex;align-items:center;gap:6px;min-width:0}
+.sw{width:11px;height:11px;border-radius:3px;flex:none;box-shadow:0 0 7px currentColor}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid #2b3a58;background:#0e1624;color:#9fc3ff;border-radius:999px;padding:7px 11px;font-size:12px;
+ cursor:pointer;font-family:inherit;min-height:34px}
+.chip:hover{border-color:var(--acc)}
+.alarm-item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dashed #1b2740;font-size:12px}
+.alarm-item .msg{color:#c8d6f2;line-height:1.45;min-width:0}
+.alarm-item .msg i{font-style:normal;display:block;font-size:10px;color:#5c6b8c;margin-top:2px}
+.alarm-item.lv-warn .msg{color:#fcd34d}.alarm-item.lv-err .msg{color:#fca5a5}
+.alarm-item .ops{display:flex;gap:6px;flex:none}
+.alarm-item .ops button{min-height:32px;padding:3px 9px;font-size:11px}
+.block{background:linear-gradient(180deg,#111a2b,#0d1523);border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:12px}
+.block>h2{font-size:13px;color:#93a6cc;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.zone-tag{background:#1e2c46;color:#93c5fd;border-radius:6px;padding:2px 8px;font-size:11px}
+.rack{display:flex;flex-direction:column;gap:9px;overflow-x:auto}
+.ztitle{font-size:12px;color:#9fb6de;display:flex;align-items:center;gap:8px;padding-top:6px;border-top:1px dashed #22304a}
+.ztitle em{font-style:normal;color:#5c6b8c;font-size:11px}
+.zrow{display:grid;grid-template-columns:40px repeat(8,minmax(52px,1fr));gap:8px;align-items:center;min-width:500px}
+.rl{font-size:11px;color:#4f5f80;text-align:right;padding-right:4px}
+.slot{border-radius:9px;padding:7px 3px;text-align:center;border:1px solid #26324d;background:#0e1624;transition:.25s;min-height:46px;position:relative;cursor:pointer}
+.slot .sid{font-size:11px;color:#6b7ba0;font-weight:700}
+.slot .st{font-size:10px;margin-top:3px;color:#3f4d6b}
+.slot .sn{position:absolute;top:2px;right:3px;font-size:8px;color:#44557a;letter-spacing:.4px}
+.slot.occupied{border-color:#334b70;background:#111d33}
+.slot.occupied .st{color:#5b739a}
+.slot.lit{animation:breath 1.3s ease-in-out infinite}
+.slot.lit .st{color:#bbf7d0}
+.slot.pend{border-color:#7a6215;background:#241d0c;animation:breath 2.4s ease-in-out infinite}
+.slot.pend .sid,.slot.pend .st{color:#fde68a}
+.slot.alarm{border-color:var(--err);background:#2a0f14;animation:flash .62s ease-in-out infinite}
+.slot.alarm .sid{color:var(--err)}.slot.alarm .st{color:#fca5a5}
+.slot.sdead{border-style:dotted;opacity:.55}
+.slot.temp{border-style:dashed}
+.slot.r0{border-color:var(--c0);background:#2a1114;box-shadow:0 0 10px rgba(239,68,68,.3)}
+.slot.r1{border-color:var(--c1);background:#2a1a0d}.slot.r2{border-color:var(--c2);background:#26230c}
+.slot.r3{border-color:var(--c3);background:#0c2818}.slot.r4{border-color:var(--c4);background:#0a2731}
+.slot.r5{border-color:var(--c5);background:#0c1a33}.slot.r6{border-color:var(--c6);background:#1d1030}
+.slot.r0 .sid,.slot.r1 .sid,.slot.r2 .sid,.slot.r3 .sid,.slot.r4 .sid,.slot.r5 .sid,.slot.r6 .sid{color:#eaf2ff}
+body.night .slot.lit{animation:none;opacity:.8}
+@keyframes breath{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes flash{0%,100%{opacity:1}50%{opacity:.32}}
+.legend{font-size:11px;color:#6b7ba0;display:flex;gap:11px;flex-wrap:wrap;align-items:center;margin-top:9px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:4px;vertical-align:-1px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:12px;margin-bottom:12px}
+.viz{background:linear-gradient(180deg,#111a2b,#0d1523);border:1px solid var(--line);border-radius:14px;padding:13px;
+ display:flex;flex-direction:column;gap:9px;min-width:0}
+.viz h2{font-size:13px;color:#93a6cc;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+svg#floor{width:100%;height:auto;display:block;background:#081020;border:1px solid #1b2740;border-radius:10px}
+canvas#heat{width:100%;height:296px;display:block;background:#081020;border:1px solid #1b2740;border-radius:10px}
+.note{font-size:11px;color:#7f97c4;line-height:1.7;background:#0b1322;border:1px dashed #243350;border-radius:9px;padding:8px 10px;white-space:pre-line}
+.note b{color:#93c5fd}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.scalebar{display:flex;align-items:center;gap:6px;font-size:10px;color:#6b7ba0}
+.scalebar u{flex:none;width:150px;height:8px;border-radius:4px;text-decoration:none;
+ background:linear-gradient(90deg,#1d4ed8,#22d3ee,#22c55e,#f59e0b,#ef4444)}
+.costgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.bom{background:#0b1322;border:1px solid #22304a;border-radius:11px;padding:11px;display:flex;flex-direction:column;gap:7px}
+.bom h3{font-size:12px;color:#a9c0e8;display:flex;align-items:center;gap:7px}
+.bom h3 em{font-style:normal;font-size:10px;padding:1px 6px;border-radius:5px;background:#1e2c46;color:#93c5fd;margin-left:auto}
+.bom p{font-size:11px;color:#6b7ba0;line-height:1.6}
+.bom .price{font-size:16px;color:#e8eeff;font-weight:700}
+.bom .price s{text-decoration:none;font-size:10px;color:#5c6b8c;font-weight:400;margin-left:3px}
+.bom ul{list-style:none;font-size:11px;color:#7f97c4;line-height:1.7}
+.bom ul li::before{content:"·";margin-right:5px;color:#4f6694}
+.bom.p0{border-color:#2b6c47}.bom.p1{border-color:#2b5a7c}.bom.p2{border-color:#6c5a2b}.bom.p3{border-color:#5a3a5c}
+.ref{margin-top:10px;font-size:10px;color:#5c6b8c;line-height:1.75;border-top:1px dashed #22304a;padding-top:8px}
+.ref b{color:#8fa3c8}
+.log{font-size:12px;color:var(--dim);max-height:186px;overflow-y:auto;line-height:1.85;font-family:ui-monospace,Consolas,monospace}
+.log p{padding:1px 0;border-bottom:1px solid #131d2e}
+.log time{color:#4f5f80;margin-right:7px}
+.log .lv-ok{color:var(--ok)}.log .lv-warn{color:var(--warn)}.log .lv-err{color:var(--err)}.log .lv-info{color:#7dd3fc}
+.pill{font-size:10px;padding:1px 7px;border-radius:999px;border:1px solid #33456b;color:#9fb6de}
+.hw-grid{
+  display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,0.9fr) minmax(0,1fr);
+  gap:14px;align-items:start;
+}
+@media (max-width:1080px){ .hw-grid{grid-template-columns:1fr 1fr;} }
+@media (max-width:760px){ .hw-grid{grid-template-columns:1fr;} }
+.hw-module{
+  background:#0b1322;border:1px solid #22304a;border-radius:12px;
+  padding:13px;display:flex;flex-direction:column;gap:10px;
+}
+.hw-label{font-size:12px;color:#93a6cc;display:flex;align-items:center;gap:8px;}
+.hw-label em{font-style:normal;font-size:10px;color:#5c6b8c;margin-left:auto;}
+.hw-shelf{display:flex;flex-direction:column;gap:8px;}
+.hw-zone-title{
+  font-size:11px;color:#9fb6de;display:flex;align-items:center;gap:8px;
+  padding-top:5px;border-top:1px dashed #22304a;
+}
+.hw-zone-title em{font-style:normal;color:#5c6b8c;font-size:10px;margin-left:auto;}
+.hw-zone-row{display:grid;grid-template-columns:38px repeat(8,1fr);gap:6px;align-items:center;}
+.hw-row-label{font-size:10px;color:#4f5f80;text-align:right;padding-right:4px;}
+.hw-led{
+  position:relative;border-radius:6px;
+  background:#0e1624;border:1px solid #26324d;
+  min-height:38px;transition:.2s;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:9px;color:#44557a;overflow:hidden;
+}
+.hw-led .hw-led-id{font-weight:700;font-size:10px;color:#6b7ba0;}
+.hw-led .hw-led-tail{font-size:8.5px;color:#44557a;letter-spacing:.3px;}
+.hw-led::before{
+  content:"";position:absolute;top:3px;right:3px;
+  width:6px;height:6px;border-radius:50%;background:#26324d;
+  transition:.15s;
+}
+.hw-led.on{ background:#0c2818;border-color:#22c55e; }
+.hw-led.on::before{
+  background:#22c55e;
+  box-shadow:0 0 10px #22c55e,0 0 18px #22c55e;
+}
+.hw-led.on .hw-led-id{color:#eaf2ff;}
+.hw-led.on .hw-led-tail{color:#86efac;}
+.hw-led.pulse{ animation:hwPulse 1.3s ease-in-out infinite; }
+.hw-led.alarm{
+  background:#2a0f14;border-color:#ef4444;
+  animation:hwAlarm .5s ease-in-out infinite;
+}
+.hw-led.alarm::before{
+  background:#ef4444;box-shadow:0 0 10px #ef4444,0 0 18px #ef4444;
+}
+.hw-led.alarm .hw-led-id{color:#fca5a5;}
+.hw-led.dead{
+  border-style:dotted;opacity:.5;background:#0e1624;
+}
+.hw-led.dead::before{background:#475569;box-shadow:none;}
+@keyframes hwPulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes hwAlarm{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.96)}}
+.hw-led-legend{
+  display:flex;gap:9px;flex-wrap:wrap;font-size:10px;color:#6b7ba0;
+  padding-top:6px;border-top:1px dashed #22304a;
+}
+.hw-led-legend span{display:inline-flex;align-items:center;gap:4px;}
+.hw-led-legend i{
+  display:inline-block;width:9px;height:9px;border-radius:2px;
+}
+.hw-buzzer{
+  background:#0f1826;border:1px solid #2b3a58;border-radius:10px;
+  padding:14px;text-align:center;position:relative;
+}
+.hw-buzzer-icon{
+  width:52px;height:52px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#334155,#0f172a);
+  margin:0 auto;border:2px solid #475569;position:relative;
+  transition:box-shadow .15s;
+}
+.hw-buzzer-icon::before{
+  content:"";position:absolute;inset:14px;border-radius:50%;
+  background:#0b1322;border:1px solid #334155;
+}
+.hw-buzzer.beeping .hw-buzzer-icon{
+  box-shadow:0 0 20px #f59e0b, 0 0 30px rgba(245,158,11,.5);
+  border-color:#f59e0b;
+}
+.hw-buzzer-wave{
+  display:flex;justify-content:center;gap:3px;height:14px;margin-top:6px;align-items:flex-end;
+  opacity:0;transition:opacity .15s;
+}
+.hw-buzzer.beeping .hw-buzzer-wave{opacity:1;}
+.hw-buzzer-wave span{
+  width:3px;background:#f59e0b;border-radius:2px;
+  animation:hwWave 0.4s ease-in-out infinite alternate;
+}
+.hw-buzzer-wave span:nth-child(2){animation-delay:.1s;}
+.hw-buzzer-wave span:nth-child(3){animation-delay:.2s;}
+@keyframes hwWave{from{height:4px}to{height:14px}}
+.hw-buzzer-status{
+  font-size:11px;color:#6b7ba0;margin-top:6px;letter-spacing:.5px;
+}
+.hw-buzzer.beeping .hw-buzzer-status{color:#fbbf24;}
+.hw-gate{
+  background:#0f1826;border:1px solid #2b3a58;border-radius:10px;
+  padding:14px;text-align:center;
+}
+.hw-gate-door{
+  width:56px;height:44px;margin:0 auto;
+  border:2px solid #475569;border-radius:4px;
+  background:linear-gradient(90deg,#1e293b 50%,#0f172a 50%);
+  transition:transform .3s,border-color .3s,box-shadow .3s;
+}
+.hw-gate.open .hw-gate-door{
+  transform:perspective(80px) rotateY(-45deg);
+  border-color:#22c55e;
+  box-shadow:0 0 12px rgba(34,197,94,.5);
+}
+.hw-gate-status{
+  font-size:11px;color:#6b7ba0;margin-top:8px;letter-spacing:.5px;
+}
+.hw-gate.open .hw-gate-status{color:#86efac;}
+.hw-screen{
+  background:#050a12;border:2px solid #1e2c46;border-radius:8px;
+  padding:14px 12px;min-height:100px;
+  font-family:ui-monospace,Consolas,monospace;
+  color:#22d3ee;text-shadow:0 0 8px rgba(34,211,238,.6);
+  font-size:13px;line-height:1.75;letter-spacing:.5px;
+  display:flex;flex-direction:column;justify-content:center;
+}
+.hw-screen-line{padding:1px 0;opacity:.95;animation:hwFlicker 3s infinite;}
+@keyframes hwFlicker{0%,98%,100%{opacity:.95}99%{opacity:.6}}
+.hw-cmdlog{
+  background:#050a12;border:1px dashed #2b3a58;border-radius:8px;
+  padding:8px 10px;font-family:ui-monospace,Consolas,monospace;
+  font-size:10.5px;color:#7dd3fc;line-height:1.7;
+  max-height:120px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;
+}
+.hw-cmdlog .cmd-out{color:#fbbf24;}
+.hw-cmdlog time{color:#4f5f80;margin-right:5px;}
+@media (max-width:1240px){.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.modebar{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:1080px){.stage{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:minmax(0,1fr)}.costgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){
+ body{font-size:13px;padding:10px}h1{font-size:18px}
+ .stage{grid-template-columns:minmax(0,1fr)}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .modebar{grid-template-columns:minmax(0,1fr)}.kpi b{font-size:18px}
+ canvas#heat{height:224px}.zrow{grid-template-columns:34px repeat(8,minmax(46px,1fr));min-width:430px}
+ .costgrid{grid-template-columns:minmax(0,1fr)}
+ .hw-zone-row{grid-template-columns:32px repeat(8,1fr);gap:4px;}
+}
+@media (pointer:coarse){button,.chip{min-height:44px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>智能驿站 <em>· 人机协同取件方案</em> EaseTurn<span class="tag">与无人驿站并列路线 · 数据均为虚构</span></h1>
+    <div class="sub">用户端自助，店员端兜底 —— 与无人驿站并列的第二条路线：一个人管一家店的智能取件站</div>
+  </div>
+  <div class="tools">
+    <span><i class="dot on" id="dotStatus"></i> <b id="txtStatus" style="color:#86efac">营业中</b></span>
+    <span id="clock">--:--:--</span>
+    <span>扫码枪 <i class="dot on" id="dotScanner"></i> <b id="txtScanner" style="color:#93c5fd">在线</b></span>
+    <span>硬件 <i class="dot on" id="dotHw"></i> <b id="txtHw" style="color:#86efac">内置沙盘</b></span>
+    <button class="ghost" id="btnHwCfg">显示/隐藏沙盘</button>
+    <button class="ghost" id="btnNight">进入夜间模式</button>
+    <button class="warn" id="btnToggle">暂停营业</button>
+    <button class="ghost" id="btnReset">重置演示</button>
+  </div>
+</header>
+
+<section class="modebar" aria-label="方案开关">
+  <div class="mode">
+    <label>取件通道 <i>核心</i></label>
+    <select id="mdLight">
+      <option value="same" selected>同用户同色 + 同区同节奏</option>
+      <option value="chaos">全场同色同频（对照）</option>
+      <option value="screen">纯屏幕/动线引导（不依赖灯）</option>
+    </select>
+    <div class="why" id="whyLight">本方案：同用户同色 + 同区同节奏，靠节奏+颜色双重辨识</div>
+  </div>
+  <div class="mode">
+    <label>值守模式 <i>核心</i></label>
+    <select id="mdMax">
+      <option value="2">2 路（最克制）</option>
+      <option value="3" selected>3 路（推荐）</option>
+      <option value="6">6 路</option>
+      <option value="9">9 路（不限制）</option>
+    </select>
+    <div class="why">超出上限自动转候补排队，店员按需协助</div>
+  </div>
+  <div class="mode">
+    <label>异常推送方式 <i>协同</i></label>
+    <select id="mdSound">
+      <option value="direct" selected>格口定向短鸣</option>
+      <option value="broadcast">全场广播（对照）</option>
+      <option value="silent">静音（只留灯 + 屏）</option>
+    </select>
+    <div class="why" id="whySound">夜间自动降为静音，异常推送到店员端</div>
+  </div>
+  <div class="mode">
+    <label>入库方式 <i>配合</i></label>
+    <select id="mdIn">
+      <option value="scan">逐件扫码 + 夹灯条（基线）</option>
+      <option value="rfid" selected>RFID 整筐批量感知</option>
+      <option value="vision">视觉辅助校验（面单+尺寸+摆放）</option>
+    </select>
+    <div class="why" id="whyIn">批量入库免逐件扫描，店员可专注异常处置</div>
+  </div>
+  <div class="mode">
+    <label>出库核验强度 <i>分层</i></label>
+    <select id="mdVerify">
+      <option value="light">仅灯亮即出库（对照）</option>
+      <option value="hybrid" selected>关键格口传感 + 出口复核</option>
+      <option value="strict">每格口重量/红外 + 出口复核</option>
+    </select>
+    <div class="why">非传感格口靠出口复核兜底，成本远低于全装</div>
+  </div>
+</section>
+
+<section class="kpis" aria-label="实时看板">
+  <div class="kpi"><span>在库件数</span><b id="kStock">0</b><i>件</i></div>
+  <div class="kpi cool"><span>今日入库</span><b id="kIn">0</b><i>件 · <span id="kInSec">0</span>s/件</i></div>
+  <div class="kpi good"><span>今日出库</span><b id="kOut">0</b><i>件</i></div>
+  <div class="kpi"><span>用户自助率</span><b id="kLit">0</b><i>/ 目标 <span id="kMax">3</span> 路</i></div>
+  <div class="kpi hot"><span>候补排队</span><b id="kPend">0</b><i>人</i></div>
+  <div class="kpi bad"><span>店员干预次数</span><b id="kRisk">0</b><i>次</i></div>
+  <div class="kpi"><span>异常待处置</span><b id="kAlarm">0</b><i>条</i></div>
+  <div class="kpi"><span>店员响应时长</span><b id="kTime">0</b><i>s · 自助 <span id="kStop">0</span> 起</i></div>
+</section>
+
+<section class="stage">
+
+  <div class="panel">
+    <h2><b>1</b>到件分拣台 <em id="inTag">配合入库</em></h2>
+    <div class="row">
+      <div class="field"><label>运单号（留空自动生成）</label><input id="inWaybill" placeholder="YT754302918374"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>收件人（脱敏）</label><input id="inRecv" placeholder="陈**" maxlength="6"></div>
+      <div class="field"><label>手机尾号</label><input id="inTail" placeholder="4位" maxlength="4" inputmode="numeric"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>件型</label><select id="inSize">
+        <option value="文件">文件</option><option value="小件" selected>小件</option><option value="中件">中件</option>
+        <option value="大件">大件（异形）</option><option value="生鲜">生鲜</option><option value="高价值">高价值</option>
+      </select></div>
+      <div class="field"><label>库位策略</label><select id="inPolicy">
+        <option value="near" selected>就近空位（动线最短）</option>
+        <option value="group">同收件人聚区</option>
+        <option value="cool">避开人流热区</option>
+        <option value="type">按件型分区</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <button class="primary" id="btnAllocate" data-primary-action>单件上架</button>
+      <button id="btnRfid">整筐入库 ×8</button>
+    </div>
+    <div class="result" id="inResult" role="status" aria-live="polite">等待到件…
+「整筐入库」模拟 RFID 通道一次读多件，逐件上架用于对比耗时。</div>
+    <div class="hint">入库自动记录标签绑定与格口校验；视觉模式会识别面单/尺寸/摆放位置，放错格口当场报错。</div>
+  </div>
+
+  <div class="panel">
+    <h2><b>2</b>用户端 · 自助取件台 <em id="pkTag">三通道自助</em></h2>
+    <div class="field"><label>取件码 / 库位码 / 手机尾号</label>
+      <div class="row"><input id="pickQuery" placeholder="1-2-05 或 A2-05 或 4021"><button class="primary" id="btnPick" data-primary-action>查件</button></div>
+    </div>
+    <div class="chips" id="codeChips"></div>
+    <div class="guide" id="guideCard">
+      <div class="g1" id="gdL1">请前往</div>
+      <div class="g2" id="gdL2">A 区 1 排</div>
+      <div class="g3" id="gdL3"></div>
+    </div>
+    <div class="list" id="queueBox"></div>
+    <div class="row">
+      <button class="ok" id="btnSensor" disabled>模拟格口传感触发</button>
+      <button class="ok" id="btnOut" disabled>出口复核出库</button>
+      <button id="btnUnlight" disabled>熄灭复位</button>
+    </div>
+    <div class="result" id="pickResult" role="status" aria-live="polite">等待查件…
+屏幕只显示「尾号 XXXX 的包裹」，不读取件码、不显完整手机号。</div>
+    <div class="hint">三通道并行：取件码 / 库位码 / 尾号，谁都能取；异常自动推送到店员端，由店员兜底处置。</div>
+  </div>
+
+  <div class="panel">
+    <h2><b>3</b>店员端 · 协同工作台 <em id="anoTag">0 待处置</em></h2>
+    <div class="seg">
+      <button class="err" data-ano="missort">错分上架</button>
+      <button class="warn" data-ano="overdue">超时未取</button>
+      <button class="err" data-ano="conflict">库位冲突</button>
+      <button class="err" data-ano="full">货架满载</button>
+      <button class="warn" data-ano="offline">设备离线</button>
+      <button class="err" data-ano="led">灯条损坏/丢失</button>
+      <button class="err" data-ano="wrong">顾客误拿他人件</button>
+      <button class="warn" data-ano="exit">未核验带出</button>
+    </div>
+    <div class="list alarms" id="alarmBox"></div>
+    <div class="hint">异常自动推送到店员端手机/工作台；每条都带处置动作与视频回溯，处置成功即闭环销号。</div>
+  </div>
+
+</section>
+
+<section class="block">
+  <h2>货架实时状态 <span class="zone-tag" id="ztHint">点击库位查看该位包裹</span>
+    <span style="margin-left:auto" class="hint" id="lightSummary">--</span></h2>
+  <div class="rack" id="rack"></div>
+  <div class="legend">
+    <span><i style="background:#0e1624;border:1px solid #26324d"></i>空位</span>
+    <span><i style="background:#111d33;border:1px solid #334b70"></i>在库</span>
+    <span><i style="background:#0c2818;border:1px solid #22c55e"></i>亮灯取件</span>
+    <span><i style="background:#241d0c;border:1px solid #7a6215"></i>候补排队</span>
+    <span><i style="background:#2a0f14;border:1px solid #ef4444"></i>异常告警</span>
+    <span><i style="background:#0e1624;border:1px dotted #6b7ba0"></i>灯条失效</span>
+    <span id="occBar">在库率 --</span>
+  </div>
+</section>
+
+<section class="block" id="hwPanel">
+  <h2>硬件输出沙盘 <span class="zone-tag">用户端 + 店员端共用硬件</span>
+    <span style="margin-left:auto" class="hint" id="hwSummary">灯珠 32 路 · 蜂鸣器 1 · 屏 1 · 门禁 1 · 店员端告警屏</span>
+  </h2>
+
+  <div class="hw-grid">
+    <div class="hw-module">
+      <div class="hw-label">WS2812B 灯条货架 <em>GPIO 5 · 32 灯珠</em></div>
+      <div class="hw-shelf" id="hwShelf"></div>
+      <div class="hw-led-legend">
+        <span><i style="background:#ef4444"></i>红</span>
+        <span><i style="background:#f97316"></i>橙</span>
+        <span><i style="background:#facc15"></i>黄</span>
+        <span><i style="background:#22c55e"></i>绿</span>
+        <span><i style="background:#22d3ee"></i>青</span>
+        <span><i style="background:#3b82f6"></i>蓝</span>
+        <span><i style="background:#a855f7"></i>紫</span>
+        <span><i style="background:#0e1624;border:1px solid #26324d"></i>灭</span>
+        <span><i style="background:#0e1624;border:1px dotted #6b7ba0"></i>灯条失效</span>
+      </div>
+    </div>
+
+    <div class="hw-module">
+      <div class="hw-label">蜂鸣器 <em>GPIO 18 · 无源</em></div>
+      <div class="hw-buzzer" id="hwBuzzer">
+        <div class="hw-buzzer-icon"></div>
+        <div class="hw-buzzer-wave" id="hwWave">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="hw-buzzer-status" id="hwBuzzerStatus">静音</div>
+      </div>
+
+      <div class="hw-label" style="margin-top:6px">出口门禁 <em>继电器</em></div>
+      <div class="hw-gate" id="hwGate">
+        <div class="hw-gate-door"></div>
+        <div class="hw-gate-status" id="hwGateStatus">关闭</div>
+      </div>
+    </div>
+
+    <div class="hw-module">
+      <div class="hw-label">货架引导屏 <em>脱敏显示</em></div>
+      <div class="hw-screen" id="hwScreen">
+        <div class="hw-screen-line">待机中</div>
+        <div class="hw-screen-line">请扫码或输入取件码</div>
+      </div>
+      <div class="hw-label" style="margin-top:6px">指令日志 <em>OUT</em></div>
+      <div class="hw-cmdlog" id="hwCmdLog"></div>
+    </div>
+  </div>
+</section>
+
+<section class="grid2">
+  <div class="viz">
+    <h2>动线引导（避堵最短路径 + 一人多件合并 + 错峰建议）
+      <button class="ghost" id="btnReplan" style="margin-left:auto">重新规划</button></h2>
+    <svg id="floor" viewBox="0 0 480 300" role="img" aria-label="驿站平面图与动线"></svg>
+    <div class="note" id="pathNote">动线待规划。</div>
+    <div class="scalebar"><span>畅通</span><u></u><span>拥堵</span><span style="margin-left:auto">虚线为行进方向 · 空心圈为目标格口</span></div>
+  </div>
+  <div class="viz">
+    <h2>人流热力图
+      <span class="seg" style="margin-left:auto">
+        <button class="ghost" data-heat="real" id="hmReal">实时人流</button>
+        <button class="ghost" data-heat="week" id="hmWeek">7 日时段</button>
+      </span></h2>
+    <canvas id="heat" aria-label="人流热力图"></canvas>
+    <div class="legend"><span>低</span><i style="width:110px;height:8px;border-radius:4px;background:linear-gradient(90deg,#1d4ed8,#22d3ee,#22c55e,#f59e0b,#ef4444)"></i><span>高</span><span id="heatTip" style="margin-left:auto">点击热区跳到对应货架区</span></div>
+  </div>
+</section>
+
+<section class="block">
+  <h2>成本与可靠性分层 <span class="zone-tag">与无人驿站并列的第二条路线：灯带为主 · 关键格口传感 · 出口复核兜底 · RFID 可选</span>
+    <span style="margin-left:auto"><button class="ghost" id="btnCostCalc">重算投入</button></span></h2>
+  <div class="costgrid" id="costGrid"></div>
+  <div class="ref" id="costRef"></div>
+</section>
+
+<section class="block">
+  <h2>实时运营日志 <button class="ghost" id="btnClearLog" style="margin-left:auto;padding:3px 10px;min-height:28px;font-size:11px">清空</button></h2>
+  <div class="log" id="log"></div>
+</section>
+
+<script>
+"use strict";
+
+const HW = (function(){
+  const els = {};
+  let beepTimer = null;
+  let gateTimer = null;
+  let night = false;
+
+  function $(id){ return document.getElementById(id); }
+
+  function init(){
+    els.shelf = $('hwShelf');
+    els.buzzer = $('hwBuzzer');
+    els.buzzerStatus = $('hwBuzzerStatus');
+    els.gate = $('hwGate');
+    els.gateStatus = $('hwGateStatus');
+    els.screen = $('hwScreen');
+    els.cmdLog = $('hwCmdLog');
+    els.summary = $('hwSummary');
+    if(!els.shelf) return;
+    buildShelf();
+  }
+
+  function buildShelf(){
+    if(!els.shelf) return;
+    els.shelf.innerHTML = '';
+    ZONES.forEach(z=>{
+      const title = document.createElement('div');
+      title.className = 'hw-zone-title';
+      const b = document.createElement('b'); b.textContent = z.name;
+      const e = document.createElement('em'); e.id = 'hwZone' + z.id;
+      e.textContent = '0/' + z.rows.reduce((s,r)=>s+r[2],0) + ' 占用';
+      title.append(b, e);
+      els.shelf.appendChild(title);
+      z.rows.forEach((r, ri)=>{
+        const row = document.createElement('div');
+        row.className = 'hw-zone-row';
+        const lab = document.createElement('div');
+        lab.className = 'hw-row-label';
+        lab.textContent = z.id + (ri+1) + '排';
+        row.appendChild(lab);
+        for(let i=0;i<r[2];i++){
+          const id = z.id + (ri+1) + '-' + pad(i+1,2);
+          const d = document.createElement('div');
+          d.className = 'hw-led';
+          d.dataset.slot = id;
+          const idEl = document.createElement('div');
+          idEl.className = 'hw-led-id';
+          idEl.textContent = id;
+          const tailEl = document.createElement('div');
+          tailEl.className = 'hw-led-tail';
+          tailEl.textContent = '—';
+          d.append(idEl, tailEl);
+          row.appendChild(d);
+        }
+        els.shelf.appendChild(row);
+      });
+    });
+  }
+
+  function ledEl(slotId){
+    if(!els.shelf) return null;
+    return els.shelf.querySelector('[data-slot="'+slotId+'"]');
+  }
+
+  function setTail(slotId, tail){
+    const el = ledEl(slotId);
+    if(!el) return;
+    const t = el.querySelector('.hw-led-tail');
+    if(t) t.textContent = tail || '—';
+  }
+
+  function clearTail(slotId){
+    const el = ledEl(slotId);
+    if(!el) return;
+    const t = el.querySelector('.hw-led-tail');
+    if(t) t.textContent = '—';
+  }
+
+  function logCmd(txt){
+    if(!els.cmdLog) return;
+    const t = new Date();
+    const p = document.createElement('div');
+    const hh = String(t.getHours()).padStart(2,'0');
+    const mm = String(t.getMinutes()).padStart(2,'0');
+    const ss = String(t.getSeconds()).padStart(2,'0');
+    p.innerHTML = '<time>'+hh+':'+mm+':'+ss+'</time><span class="cmd-out">'+txt+'</span>';
+    els.cmdLog.prepend(p);
+    while(els.cmdLog.children.length > 40) els.cmdLog.lastChild.remove();
+  }
+
+  function light(slotId, color, mode){
+    const el = ledEl(slotId);
+    if(!el) return;
+    el.classList.remove('on','pulse','alarm','dead');
+    el.style.borderColor = '';
+    el.style.background = '';
+    el.style.boxShadow = '';
+
+    if(mode === 'off' || color < 0){
+      logCmd('LIGHT ' + slotId + ' OFF');
+      return;
+    }
+    if(mode === 'alarm'){
+      el.classList.add('alarm');
+      logCmd('LIGHT ' + slotId + ' ON ' + color + ' alarm');
+      return;
+    }
+    const c = COLORS[color] || '#22c55e';
+    el.classList.add('on');
+    el.style.borderColor = c;
+    el.style.background = 'linear-gradient(180deg, ' + c + '22, #0c2818)';
+    if(mode === 'pulse-same') el.classList.add('pulse');
+    logCmd('LIGHT ' + slotId + ' ON ' + color + ' ' + mode);
+  }
+
+  function unlight(slotId){
+    const el = ledEl(slotId);
+    if(!el) return;
+    el.classList.remove('on','pulse','alarm','dead');
+    el.style.borderColor = '';
+    el.style.background = '';
+    el.style.boxShadow = '';
+    logCmd('LIGHT ' + slotId + ' OFF');
+  }
+
+  function unlightAll(){
+    if(!els.shelf) return;
+    els.shelf.querySelectorAll('.hw-led').forEach(el=>{
+      el.classList.remove('on','pulse','alarm','dead');
+      el.style.borderColor = '';
+      el.style.background = '';
+      el.style.boxShadow = '';
+    });
+    logCmd('LIGHT ALL OFF');
+  }
+
+  function markDead(slotId, dead){
+    const el = ledEl(slotId);
+    if(!el) return;
+    if(dead) el.classList.add('dead');
+    else el.classList.remove('dead');
+    logCmd('LED ' + slotId + (dead ? ' FAIL' : ' OK'));
+  }
+
+  function beep(slotId, kind){
+    if(!els.buzzer) return;
+    if(kind === 'none'){ logCmd('BEEP ' + slotId + ' NONE'); return; }
+
+    let dur = 90, text = '短鸣', freq = 2000;
+    if(kind === 'night'){ dur = 60;  text = '夜间短鸣'; freq = 1000; }
+    if(kind === 'alarm'){ dur = 400; text = '告警长鸣'; freq = 3000; }
+    if(kind === 'short'){ dur = 90;  text = '短鸣'; }
+
+    els.buzzer.classList.add('beeping');
+    els.buzzerStatus.textContent = text + ' · ' + freq + 'Hz';
+    logCmd('BEEP ' + slotId + ' ' + String(kind||'').toUpperCase());
+
+    clearTimeout(beepTimer);
+    beepTimer = setTimeout(()=>{
+      els.buzzer.classList.remove('beeping');
+      els.buzzerStatus.textContent = '静音';
+    }, dur);
+
+    try{
+      const ctx = (window._hwAudioCtx = window._hwAudioCtx || new (window.AudioContext||window.webkitAudioContext)());
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = freq;
+      osc.type = 'square';
+      gain.gain.value = 0.05;
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + dur/1000);
+    }catch(e){}
+  }
+
+  function broadcast(text){
+    logCmd('BROADCAST ' + text);
+    if(els.buzzer){
+      els.buzzer.classList.add('beeping');
+      els.buzzerStatus.textContent = '全场广播';
+      clearTimeout(beepTimer);
+      beepTimer = setTimeout(()=>{
+        els.buzzer.classList.remove('beeping');
+        els.buzzerStatus.textContent = '静音';
+      }, 500);
+    }
+  }
+
+  function screen(lines){
+    if(!els.screen) return;
+    els.screen.innerHTML = '';
+    (lines||[]).forEach((ln,i)=>{
+      const d = document.createElement('div');
+      d.className = 'hw-screen-line';
+      d.textContent = ln;
+      d.style.animationDelay = (i*0.3)+'s';
+      els.screen.appendChild(d);
+    });
+    logCmd('SCREEN ' + (lines||[]).join(' / '));
+  }
+
+  function gate(action, parcel){
+    if(!els.gate) return;
+    if(action === 'open'){
+      els.gate.classList.add('open');
+      els.gateStatus.textContent = '放行 ' + (parcel && parcel.code ? parcel.code : '');
+      logCmd('GATE OPEN ' + (parcel && parcel.code || ''));
+      clearTimeout(gateTimer);
+      gateTimer = setTimeout(()=>{
+        els.gate.classList.remove('open');
+        els.gateStatus.textContent = '关闭';
+      }, 1800);
+    }else{
+      els.gate.classList.remove('open');
+      els.gateStatus.textContent = '关闭';
+      logCmd('GATE CLOSE');
+    }
+  }
+
+  function nightMode(on){
+    night = !!on;
+    logCmd('NIGHT ' + (night?1:0));
+    if(els.summary){
+      els.summary.textContent = '灯珠 32 路 · 蜂鸣器 1 · 屏 1 · 门禁 1 · ' + (night ? '夜间静音' : '日间模式');
+    }
+  }
+
+  function refreshZoneCount(){
+    if(!els.shelf) return;
+    ZONES.forEach(z=>{
+      const e = $('hwZone' + z.id);
+      if(!e) return;
+      const total = z.slotIds.length;
+      const used = z.slotIds.filter(id=>S.slots.get(id) && S.slots.get(id).parcelId).length;
+      e.textContent = used + '/' + total + ' 占用';
+    });
+  }
+
+  function _send(path, body){
+    logCmd('EVENT ' + (body&&body.slot||'') + ' ' + (body&&body.event||''));
+  }
+  function setEnabled(){ }
+  function isEnabled(){ return true; }
+  function setBase(){ }
+  function getBase(){ return 'inline://virtual-hardware'; }
+  function ping(){ return Promise.resolve({ ok:true, clients:1, inline:true }); }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    setTimeout(init, 0);
+  }
+
+  return {
+    light, unlight, unlightAll, markDead,
+    beep, broadcast, screen, gate, night: nightMode,
+    setTail, clearTail, refreshZoneCount,
+    setEnabled, isEnabled, setBase, getBase, ping,
+    _send
+  };
+})();
+
+const CELL=20, GW=24, GH=15, H=3600000;
+const ZONES=[
+  {id:'A',no:1,name:'A区 · 文件/小件',types:['文件','小件'],rows:[[8,2,8],[8,4,8],[8,6,8]]},
+  {id:'B',no:2,name:'B区 · 电商中件',types:['中件'],rows:[[17,2,6],[17,4,6],[17,6,6],[17,8,6]]},
+  {id:'C',no:3,name:'C区 · 大件/生鲜',types:['大件','生鲜'],rows:[[3,11,8],[3,13,8]]}
+];
+const COUNTER={x:1,y:1,w:5};
+const DOOR={x:1,y:14};
+const GATE={x:21,y:14,w:2};
+const SIZE_CAP={'文件':1,'小件':1,'中件':1,'大件':2,'生鲜':1,'高价值':1};
+const SENSOR_SIZE=['大件','生鲜','高价值'];
+const COLORS=['#ef4444','#f97316','#facc15','#22c55e','#22d3ee','#3b82f6','#a855f7'];
+const COLOR_NAME=['红','橙','黄','绿','青','蓝','紫'];
+const PEOPLE=['陈**','李**','王**','赵**','刘**','周**','吴**','郑**','孙**','林**','黄**','徐**'];
+const COURIER=['圆通','中通','韵达','申通','极兔','顺丰','京东','邮政'];
+const ANO_DEF={
+  missort:{label:'错分上架',lv:'err',do:'改派正确格口'},
+  overdue:{label:'超时未取',lv:'warn',do:'强制出库'},
+  conflict:{label:'库位冲突',lv:'err',do:'拆单改派'},
+  full:{label:'货架满载',lv:'err',do:'溢出分流'},
+  offline:{label:'设备离线',lv:'warn',do:'重启设备'},
+  led:{label:'灯条失效',lv:'err',do:'降级引导'},
+  wrong:{label:'顾客误拿',lv:'err',do:'冻结+复核'},
+  exit:{label:'未核验带出',lv:'warn',do:'复核放行'}
+};
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+let rnd=mulberry32(20261015);
+const ri=(a,b)=>a+Math.floor(rnd()*(b-a+1));
+const pick=arr=>arr[Math.floor(rnd()*arr.length)];
+const pad=(n,w)=>String(n).padStart(w,'0');
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function hashColor(key){let h=0;for(let i=0;i<key.length;i++)h=(h*31+key.charCodeAt(i))>>>0;return h%7;}
+
+const S={
+  open:true, night:false, scanner:true, seq:1000, pickSeq:0, alarmSeq:0,
+  today:{in:41,out:23}, inSec:0, inCnt:0, stops:0, risk:0,
+  crowd:{门口:4,柜台:3,A:5,B:7,C:2},
+  parcels:new Map(), slots:new Map(), alarms:new Map(),
+  active:[], pend:[], curId:null, path:null, pathSteps:0, times:[], mode:'real',
+  peak:0, heatFrame:0
+};
+const els={};
+const $id=id=>document.getElementById(id);
+function fmtTime(d){return pad(d.getHours(),2)+':'+pad(d.getMinutes(),2)+':'+pad(d.getSeconds(),2);}
+function ageText(ts){const h=(Date.now()-ts)/H;return h<1?Math.round(h*60)+'分钟前':h<24?Math.round(h)+'小时前':Math.floor(h/24)+'天'+Math.round(h%24)+'小时前';}
+function log(msg,lv){
+  const p=document.createElement('p');
+  const t=document.createElement('time'); t.textContent=fmtTime(new Date());
+  const s=document.createElement('span'); s.className='lv-'+(lv||'info'); s.textContent=msg;
+  p.append(t,s); els.log.prepend(p);
+  while(els.log.children.length>160) els.log.lastChild.remove();
+}
+function setResult(el,main,lines,cls){
+  el.textContent='';
+  const b=document.createElement('div'); b.className=cls||'big'; b.textContent=main; el.append(b);
+  (lines||[]).forEach(t=>{const d=document.createElement('div');d.textContent=t;el.append(d);});
+}
+
+function buildSlots(){
+  S.slots=new Map();
+  ZONES.forEach(z=>{
+    z.slotIds=[];
+    z.rows.forEach((r,ri2)=>{
+      for(let i=0;i<r[2];i++){
+        const id=z.id+(ri2+1)+'-'+pad(i+1,2);
+        const aisleY=(r[1]+1<GH)?r[1]+1:r[1]-1;
+        S.slots.set(id,{id,zone:z.id,no:z.no,row:ri2+1,idx:i+1,gx:r[0]+i,gy:r[1],aisle:[r[0]+i,aisleY],
+          status:'empty',parcelId:null,sensor:false,temp:false,alarm:null,ledOk:true,color:-1});
+        z.slotIds.push(id);
+      }
+    });
+  });
+}
+function buildRack(){
+  els.rack.textContent='';
+  ZONES.forEach(z=>{
+    const t=document.createElement('div'); t.className='ztitle';
+    const a=document.createElement('b'); a.textContent=z.name;
+    const b=document.createElement('em'); b.id='zn'+z.id;
+    t.append(a,b); els.rack.append(t);
+    z.rows.forEach((r,ri2)=>{
+      const row=document.createElement('div'); row.className='zrow';
+      const lab=document.createElement('div'); lab.className='rl'; lab.textContent=z.id+(ri2+1)+'排';
+      row.append(lab);
+      for(let i=0;i<r[2];i++){
+        const id=z.id+(ri2+1)+'-'+pad(i+1,2);
+        const d=document.createElement('div'); d.className='slot'; d.id='sl'+id; d.dataset.slot=id;
+        const sn=document.createElement('div'); sn.className='sn';
+        const sid=document.createElement('div'); sid.className='sid'; sid.textContent=id;
+        const st=document.createElement('div'); st.className='st'; st.textContent='空位';
+        d.append(sn,sid,st);
+        d.addEventListener('click',()=>showSlot(id));
+        row.append(d);
+      }
+      els.rack.append(row);
+    });
+  });
+}
+function paintSlot(id){
+  const s=S.slots.get(id); if(!s) return;
+  const d=$id('sl'+id); if(!d) return;
+  let cls='slot';
+  if(s.alarm) cls+=' alarm';
+  else if(s.status==='lit') cls+=' lit r'+(s.color>=0?s.color:3);
+  else if(s.status==='pend') cls+=' pend';
+  else if(s.status==='occupied') cls+=' occupied';
+  if(s.temp) cls+=' temp';
+  if(!s.ledOk&&s.status==='occupied') cls+=' sdead';
+  d.className=cls;
+  d.querySelector('.sn').textContent=s.sensor?'称重':s.temp?'临时':'灯带';
+  const st=d.querySelector('.st');
+  st.textContent=s.alarm?ANO_DEF[s.alarm].label:
+    s.status==='lit'?(COLOR_NAME[s.color]+'灯 · '+(s.verified?'已核验':'待核验')):
+    s.status==='pend'?'候补排队':s.status==='occupied'?(!s.ledOk?'灯条失效':'在库待取'):'空位';
+}
+function paintZone(){
+  ZONES.forEach(z=>{
+    const e=$id('zn'+z.id); if(!e) return;
+    const used=z.slotIds.filter(i=>S.slots.get(i).parcelId).length;
+    e.textContent=' 占用 '+used+'/'+z.slotIds.length+' · 在架率 '+Math.round(used/z.slotIds.length*100)+'% · 人流 '+(S.crowd[z.id]|0)+'人';
+  });
+  const all=[...S.slots.values()], used=all.filter(s=>s.parcelId).length;
+  els.occBar.textContent='在库率 '+Math.round(used/all.length*100)+'%（'+used+'/'+all.length+' 库位）';
+  els.lightSummary.textContent='亮灯 '+S.active.length+' 路 · 候补 '+S.pend.length+' · 声光：'+
+    els.mdLight.options[els.mdLight.selectedIndex].text+' / '+els.mdSound.options[els.mdSound.selectedIndex].text;
+  if(window.HW && HW.refreshZoneCount) HW.refreshZoneCount();
+}
+function showSlot(id){
+  const s=S.slots.get(id), p=s.parcelId?S.parcels.get(s.parcelId):null;
+  if(!p){log('库位 '+id+' 空置（'+(s.sensor?'称重格口':'灯带格口')+'）','info');return;}
+  log('库位 '+id+' → 尾号'+p.tail+' / '+p.size+' / '+(s.sensor?'称重+红外':'仅灯带')+' / 入站'+ageText(p.inAt),'info');
+}
+
+function newParcel(force){
+  S.seq++;
+  return Object.assign({id:'P'+S.seq,waybill:pick(['YT','ZTO','YD','STO','JT','SF','JD','EMS'])+ri(100000000000,999999999999),
+    recv:pick(PEOPLE),tail:pad(ri(1000,9999),4),size:pick(['文件','小件','小件','中件','中件','中件','大件','生鲜','高价值']),
+    courier:pick(COURIER),inAt:Date.now(),status:'待取',pickCode:'',slotId:null,slotIds:null,lightAt:0,
+    verified:false,overdue:false,alarmed:null,value:'普通'},force||{});
+}
+function placeParcel(p,slotId){
+  const s=S.slots.get(slotId);
+  S.pickSeq++;
+  p.slotId=slotId; p.slotIds=[slotId];
+  p.pickCode=s.no+'-'+s.row+'-'+pad(s.idx,2);
+  p.code3=s.no+'-'+s.row+'-'+pad(s.idx,2)+'-'+pad(100+S.pickSeq%900,3);
+  s.parcelId=p.id; s.status='occupied'; s.sensor=SENSOR_SIZE.includes(p.size);
+  s.value=p.value;
+  S.parcels.set(p.id,p); paintSlot(slotId);
+  if(window.HW && HW.setTail) HW.setTail(slotId, '尾'+p.tail);
+  return p;
+}
+function seedDemo(){
+  rnd=mulberry32(20261015);
+  S.parcels=new Map(); S.alarms=new Map(); S.active=[]; S.pend=[]; S.curId=null;
+  S.seq=1000; S.pickSeq=0; S.alarmSeq=0; S.today={in:41,out:23}; S.times=[]; S.peak=0; S.inSec=0; S.inCnt=0;
+  S.stops=0; S.risk=0; S.path=null; S.mode='real';
+  S.crowd={门口:4,柜台:3,A:5,B:7,C:2};
+  S.scanner=true; S.open=true;
+  const ti=ZONES.findIndex(z=>z.id==='T'); if(ti>=0){ZONES.splice(ti,1);delete ANCHOR['T'];delete S.crowd.T;}
+  buildSlots();
+  const ids=[...S.slots.keys()];
+  for(let i=ids.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));const t=ids[i];ids[i]=ids[j];ids[j]=t;}
+  ids.slice(0,Math.round(ids.length*0.5)).forEach(sid=>{
+    const slot=S.slots.get(sid),p=newParcel();
+    p.size=pick(ZONES.find(z=>z.id===slot.zone).types);
+    if(rnd()<0.12) p.value='高价值';
+    p.inAt=Date.now()-ri(1,96)*H;
+    placeParcel(p,sid);
+  });
+  els.dotScanner.className='dot on'; els.txtScanner.textContent='在线';
+  els.dotStatus.className='dot on'; els.txtStatus.textContent='营业中';
+  els.btnToggle.textContent='暂停营业';
+  els.btnAllocate.disabled=false; els.btnRfid.disabled=false; els.btnPick.disabled=false;
+  els.log.textContent='';
+  buildRack(); refreshAll(); renderChips(); buildFloor(); planPath(null); drawHeat(); renderQueue(); renderGuide(null);
+  log('演示数据载入：'+S.parcels.size+' 件在库 / '+S.slots.size+' 库位 · 其中称重格口 '+[...S.slots.values()].filter(s=>s.sensor).length+' 个','ok');
+  HW.unlightAll();
+  HW.screen(['待机中', '请扫码或输入取件码']);
+  HW.refreshZoneCount();
+}
+function refreshAll(){[...S.slots.keys()].forEach(paintSlot);paintZone();renderKpi();renderAlarms();}
+function renderChips(){
+  els.codeChips.textContent='';
+  const list=[...S.parcels.values()].filter(p=>p.status==='待取').slice(0,4);
+  if(!list.length){const h=document.createElement('div');h.className='hint';h.textContent='暂无示例码，先「整筐入库 ×8」。';els.codeChips.append(h);return;}
+  list.forEach(p=>{
+    const b=document.createElement('button'); b.className='chip'; b.textContent=p.code3+' · 尾号'+p.tail;
+    b.addEventListener('click',()=>{els.pickQuery.value=p.code3;doPick();});
+    els.codeChips.append(b);
+  });
+}
+
+function allowedZones(size){return ZONES.filter(z=>z.types.includes(size)).map(z=>z.id);}
+function empties(zf){return [...S.slots.values()].filter(s=>!s.parcelId&&(!zf||zf.includes(s.zone)));}
+function dist(a,b){return Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1]);}
+function zoneLoad(z){return z.slotIds.filter(i=>S.slots.get(i).parcelId).length/z.slotIds.length;}
+function findPair(zf){
+  for(const s of S.slots.values()){
+    if(s.parcelId||s.temp) continue;
+    if(zf&&!zf.includes(s.zone)) continue;
+    const nb=S.slots.get(s.zone+s.row+'-'+pad(s.idx+1,2));
+    if(nb&&!nb.parcelId) return [s,nb];
+  }
+  return null;
+}
+function allocateSlot(size,policy,recv){
+  const allow=allowedZones(size);
+  let cand=empties(allow);
+  if(!cand.length) cand=empties();
+  if(!cand.length) return null;
+  if((SIZE_CAP[size]||1)>1){const pr=findPair(allow);if(pr) return {main:pr[0].id,extra:pr[1].id};}
+  if(policy==='near') cand.sort((a,b)=>dist(a.aisle,DOOR)-dist(b.aisle,DOOR));
+  else if(policy==='cool') cand.sort((a,b)=>(zoneLoadZone(a.zone)+S.crowd[a.zone]/12)-(zoneLoadZone(b.zone)+S.crowd[b.zone]/12));
+  else if(policy==='type') cand.sort((a,b)=>zoneLoadZone(a.zone)-zoneLoadZone(b.zone));
+  else if(policy==='group'&&recv){
+    const home={};
+    [...S.parcels.values()].filter(p=>p.recv===recv&&p.status==='待取').forEach(p=>{home[S.slots.get(p.slotId).zone]=1;});
+    const same=cand.filter(s=>home[s.zone]);
+    if(same.length){same.sort((a,b)=>dist(a.aisle,DOOR)-dist(b.aisle,DOOR));return {main:same[0].id,home:'聚到已有件所在 '+same[0].zone+'区'};}
+    cand.sort((a,b)=>dist(a.aisle,DOOR)-dist(b.aisle,DOOR));
+  }
+  return {main:cand[0].id,extra:null};
+}
+function zoneLoadZone(zid){const z=ZONES.find(x=>x.id===zid);return z?zoneLoad(z):0;}
+function visionCheck(p,slot){
+  if(!slot) return {ok:false,why:'无可用格口'};
+  const zone=ZONES.find(z=>z.id===slot.zone);
+  if(zone&&!zone.types.includes(p.size)) return {ok:false,why:'面单识别为 '+p.size+'，该区仅放 '+zone.types.join('/')};
+  if(p.size==='大件'&&!slot.temp){
+    const nb=S.slots.get(slot.zone+slot.row+'-'+pad(slot.idx+1,2));
+    if(!nb||nb.parcelId) return {ok:false,why:'大件需相邻双格口，视觉判定摆放超界'};
+  }
+  if(p.size==='生鲜'&&slot.row>2) return {ok:false,why:'生鲜应放 1-2 排便于冷链复核'};
+  return {ok:true,why:'面单/尺寸/摆放三项通过'};
+}
+function doIntake(auto,preset){
+  if(!S.scanner){
+    setResult(els.inResult,'入库通道已关闭',['扫码枪离线，请先在处置台重启设备。'],'bige');
+    if(!auto) log('入库失败：扫码枪离线','err');
+    return null;
+  }
+  const mode=els.mdIn.value;
+  const size=preset?preset.size:els.inSize.value;
+  const recv=preset?preset.recv:(els.inRecv.value.trim()||pick(PEOPLE));
+  const tail=preset?preset.tail:(els.inTail.value.trim().match(/\d{4}/)||[''])[0]||pad(ri(1000,9999),4);
+  const waybill=preset?preset.waybill:(els.inWaybill.value.trim()||('YT'+ri(100000000000,999999999999)));
+  const res=allocateSlot(size,els.inPolicy.value,recv);
+  if(!res){
+    setResult(els.inResult,'全库位满载 · 上架失败',['请先处置「货架满载」，或等待溢出分流。'],'bige');
+    if(!auto) log('上架失败：无可分配空位（'+size+'）','err');
+    return null;
+  }
+  const p=newParcel({waybill,recv,tail,size});
+  const slot=S.slots.get(res.main);
+  if(mode==='vision'){
+    const vc=visionCheck(p,slot);
+    if(!vc.ok){
+      const alt=allocateSlot(size,'type',recv);
+      setResult(els.inResult,'视觉校验拦截 · 未上架',[vc.why,'已改建议格口：'+(alt?alt.main:'无'),'（错分在入库口就被挡掉，不再依赖事后盘查）'],'bigw');
+      log('视觉校验拦截：'+size+' 落入 '+slot.id+' → '+vc.why,'warn');
+      return null;
+    }
+  }
+  placeParcel(p,res.main);
+  if(res.extra){const ex=S.slots.get(res.extra);ex.parcelId=p.id;ex.shared=true;ex.status='occupied';p.slotIds.push(res.extra);paintSlot(ex.id);HW.setTail(ex.id,'尾'+p.tail);}
+  const per=mode==='rfid'?0.4:mode==='vision'?1.1:8.2;
+  S.inSec+=per*(p.slotIds?Math.max(1,p.slotIds.length):1); S.inCnt++;
+  S.today.in++;
+  setResult(els.inResult,'上架成功 '+p.code3,[
+    '库位 '+slot.id+'（'+ZONES.find(z=>z.id===slot.zone).name+' · '+slot.row+'排'+slot.idx+'位'+(p.slotIds.length>1?' · 大件占 2 格':'')+'）',
+    '尾号 '+p.tail+' · '+p.recv+' · '+p.size+(p.value==='高价值'?' · 高价值':''),
+    '格口能力 '+(slot.sensor?'称重+红外（可自动判定取走）':'灯带引导（靠出口复核兜底）'),
+    '入库方式 '+els.mdIn.options[els.mdIn.selectedIndex].text+' · 约 '+per+' 秒/件',
+    mode==='vision'?'视觉校验：'+visionCheck(p,slot).why:''
+  ].filter(Boolean),auto?'big':'big');
+  if(!auto){els.inWaybill.value='';els.inRecv.value='';els.inTail.value='';}
+  HW.screen(['入库完成', '库位 '+slot.id, '尾号 '+p.tail]);
+  return p;
+}
+function log2(p){if(p) log('上架 '+p.code3+' → '+p.slotId+'（'+p.size+' / 尾号'+p.tail+'）','ok');}
+function batchRfid(){
+  if(!S.scanner){log('整筐入库失败：读写器离线','err');return;}
+  let done=0;
+  const res=[];
+  for(let i=0;i<8;i++){
+    const p=doIntake(true);
+    if(!p) break;
+    res.push(p); done++;
+  }
+  const cost=(S.inSec/Math.max(1,S.inCnt));
+  log('RFID 整筐入库：一次读取 '+done+' 件 · 累计均耗 '+cost.toFixed(1)+' 秒/件（逐件扫码基线约 8.2 秒/件）','ok');
+  setResult(els.inResult,'整筐入库完成 · '+done+' 件',[
+    'RFID 通道批量读取，免逐件扫描与逐件夹灯条',
+    '当前均耗 '+cost.toFixed(1)+' 秒/件 · 已入库 '+S.inCnt+' 件样本',
+    '面单-标签-格口三者自动绑定，漏读件进入待补清单',
+    done<8?'本筐有 '+(8-done)+' 件因满载/校验未上架，见日志':''
+  ].filter(Boolean),'big');
+  refreshAll(); renderChips();
+}
+
+function colorPlan(){
+  const strat=els.mdLight.value;
+  const used={};
+  S.active.forEach(a=>{used[a.color]=1;});
+  return {strat,used};
+}
+function pickColor(tail){
+  const {strat,used}=colorPlan();
+  if(strat==='chaos') return 3;
+  let base=hashColor(tail);
+  if(!used[base]) return base;
+  for(let d=1;d<7;d++){const c=(base+d)%7;if(!used[c]) return c;}
+  return base;
+}
+function enqueue(p){
+  const max=+els.mdMax.value;
+  if(S.active.length>=max){
+    if(!S.pend.includes(p.id)){S.pend.push(p.id);p.status='候补';const s=S.slots.get(p.slotId);s.status='pend';paintSlot(s.id);}
+    return 'pend';
+  }
+  lightUp(p); return 'lit';
+}
+
+function lightUp(p){
+  const strat=els.mdLight.value;
+  if(strat==='chaos'&&S.active.length){
+    S.risk++;S.stops++;
+    log('同色冲突：并发 '+S.active.length+' 组全部同色同频 · 已记 1 次干预风险','warn');
+  }else if(strat==='same'&&S.active.length>=7){
+    S.risk++;
+    log('7 色已用尽，第 8 人自动转候补排队','warn');
+    S.pend.push(p.id);p.status='候补';const s0=S.slots.get(p.slotId);s0.status='pend';paintSlot(s0.id);return;
+  }
+  const s=S.slots.get(p.slotId);
+  const rec={pid:p.id,color:hashColor(p.tail),verified:!s.sensor||strat==='chaos',sensor:s.sensor,t0:Date.now()};
+  S.active.push(rec);
+  S.curId=p.id;
+  p.status='取件中'; p.lightAt=Date.now();
+  (p.slotIds||[p.slotId]).forEach(sid=>{
+    const t=S.slots.get(sid);
+    if(!t.alarm){t.status='lit';t.color=rec.color;paintSlot(sid);}
+    if(strat!=='screen'){
+      HW.light(sid, rec.color, strat==='same'?'pulse-same':'steady');
+    }
+  });
+  if(strat==='screen'){
+    HW.screen(['请前往 '+s.id, '尾号 '+p.tail+' 的包裹', '纯屏幕/动线引导']);
+  }else{
+    HW.screen(['请取件', '库位 '+s.id, '尾号 '+p.tail, '颜色 '+COLOR_NAME[rec.color]]);
+  }
+  playSound(p,rec);
+  renderKpi(); renderQueue(); planPath(p.id); renderGuide(rec);
+}
+
+function promote(){
+  const max=+els.mdMax.value;
+  while(S.active.length<max&&S.pend.length){
+    const id=S.pend.shift();
+    const p=S.parcels.get(id);
+    if(!p||p.status==='已出库') continue;
+    p.status='取件中'; p.lightAt=Date.now();
+    const rec={pid:p.id,color:pickColor(p.tail),verified:false,sensor:S.slots.get(p.slotId).sensor,t0:Date.now()};
+    if(els.mdLight.value==='chaos') rec.color=3;
+    S.active.push(rec); S.curId=p.id;
+    (p.slotIds||[p.slotId]).forEach(sid=>{
+      const s=S.slots.get(sid);
+      if(!s.alarm){s.status='lit';s.color=rec.color;paintSlot(sid);}
+      if(els.mdLight.value!=='screen'){
+        HW.light(sid, rec.color, 'steady');
+      }
+    });
+    log('候补转正：尾号'+p.tail+' 的 '+p.code3+' 已亮灯（第 '+S.active.length+'/'+max+' 路）','ok');
+    playSound(p,rec);
+    renderGuide(rec); planPath(p.id);
+  }
+  renderKpi(); renderQueue(); paintZone();
+}
+
+function playSound(p,rec){
+  const mode=els.mdSound.value;
+  if(mode==='silent'){
+    log('提示音：静音模式（仅灯 + 屏）· 尾号'+p.tail,'info');
+    HW.beep(p.slotId, 'none');
+    return;
+  }
+  if(mode==='broadcast'){
+    if(S.night){
+      log('夜间广播已被策略强制静音（扰民规避）· 仅保留灯带','warn');
+      HW.beep(p.slotId, 'none');
+      return;
+    }
+    log('提示音：全场广播「请取 '+p.code3+'」—— 多人并发时相互干扰','warn');
+    HW.broadcast('请取 '+p.code3);
+    S.risk++;
+    return;
+  }
+  log('提示音：格口 '+p.slotId+' 定向短鸣 1 次（'+(S.night?'夜间 42dB':'日间 62dB')+'）· 全场不广播','ok');
+  HW.beep(p.slotId, S.night?'night':'short');
+}
+
+function doPick(){
+  if(!S.scanner){setResult(els.pickResult,'取件失败 · 通道离线',['核验枪离线，请重启设备或用人工台账。'],'bige');log('查件失败：扫码枪离线','err');return;}
+  const q=(els.pickQuery.value||'').trim();
+  const list=findParcels(q);
+  if(!list.length){
+    setResult(els.pickResult,'查无此件：'+(q||'（空输入）'),
+      ['支持：取件码 1-2-05-101 / 库位码 A2-05 / 手机尾号 4 位','不装 App、不扫码授权也能取（保留尾号通道）'],'bige');
+    log('查件无结果：'+(q||'空输入'),'warn');return;
+  }
+  let lit=0,pend=0;
+  list.forEach(p=>{const r=enqueue(p);r==='lit'?lit++:pend++;});
+  const max=+els.mdMax.value;
+  els.pkTag.textContent='并发 '+S.active.length+'/'+max;
+  setResult(els.pickResult,'命中 '+list.length+' 件 · 尾号'+list[0].tail,
+    [list.length>1?'一人多件：已按动线顺序串成一条路线（不折返）':'单件取货',
+     '立即亮灯 '+lit+' 组'+(pend?' · 候补排队 '+pend+' 组（并发上限 '+max+' 路）':''),
+     '屏幕脱敏：只显示「尾号 '+list[0].tail+' 的包裹」，取件码不语音朗读',
+     els.mdLight.value==='screen'?'当前为纯屏幕引导：不依赖灯条（灯坏也能取）':'灯光辨识：'+COLOR_NAME[S.active.length?S.active[S.active.length-1].color:3]+'色 · 同区同节奏闪烁'],
+    'big');
+  log('查件命中 '+list.length+' 件（'+list.map(p=>p.code3).join(' / ')+'）· 亮灯 '+lit+' · 候补 '+pend,'ok');
+  S.crowd.柜台=clamp(S.crowd.柜台+1,0,18);
+  if(list[0].slotId){const z=S.slots.get(list[0].slotId).zone;S.crowd[z]=clamp((S.crowd[z]||0)+list.length,0,16);}
+  refreshAll(); drawHeat();
+}
+
+function findParcels(q){
+  q=(q||'').trim().toUpperCase();
+  if(!q) return [];
+  const wait=[...S.parcels.values()].filter(p=>p.status==='待取'||p.status==='候补'||p.status==='取件中');
+  let r=wait.filter(p=>p.code3===q||p.pickCode===q);
+  if(!r.length&&/^[A-C]\d-\d{2}$/.test(q)){const s=S.slots.get(q);if(s&&s.parcelId)r=[S.parcels.get(s.parcelId)];}
+  if(!r.length&&/^\d{4}$/.test(q)) r=wait.filter(p=>p.tail===q);
+  if(!r.length&&/^\d+-\d+-\d{2}$/.test(q)) r=wait.filter(p=>p.pickCode===q);
+  return r;
+}
+function recOf(id){return S.active.find(a=>a.pid===id);}
+function renderQueue(){
+  els.queueBox.textContent='';
+  if(!S.active.length&&!S.pend.length){
+    const h=document.createElement('div');h.className='hint';h.textContent='当前无人取件。查件后自动按并发上限排队。';els.queueBox.append(h);return;
+  }
+  S.active.forEach(a=>{
+    const p=S.parcels.get(a.pid); if(!p) return;
+    const row=document.createElement('div'); row.className='item on';
+    const l=document.createElement('span'); l.className='lb';
+    const sw=document.createElement('i'); sw.className='sw'; sw.style.color=COLORS[a.color]; sw.style.background=COLORS[a.color];
+    const tx=document.createElement('span');
+    tx.textContent='亮灯中 尾号'+p.tail+' · '+p.code3+' · '+p.slotId+(a.sensor?' · 称重格口':'')+(p.slotIds&&p.slotIds.length>1?'×2格':'');
+    l.append(sw,tx);
+    const r=document.createElement('span');
+    const b1=document.createElement('button'); b1.className='ghost'; b1.textContent='切换';
+    b1.addEventListener('click',()=>{S.curId=a.pid;planPath(a.pid);renderGuide(a);log('柜面切换到尾号'+p.tail+'（'+p.slotId+'）','info');});
+    const b2=document.createElement('button'); b2.className='ok'; b2.textContent=a.verified?'出库':'待核验';
+    b2.disabled=!a.verified&&els.mdVerify.value!=='light';
+    b2.addEventListener('click',()=>outParcel(a.pid));
+    r.append(b1,document.createTextNode(' '),b2);
+    row.append(l,r); els.queueBox.append(row);
+  });
+  S.pend.forEach((id,i)=>{
+    const p=S.parcels.get(id); if(!p) return;
+    const row=document.createElement('div'); row.className='item pend';
+    const l=document.createElement('span'); l.className='lb';
+    l.textContent='候补 '+(i+1)+' 尾号'+p.tail+' · '+p.code3+' · '+p.slotId;
+    const b=document.createElement('button'); b.className='warn'; b.textContent='插队点亮';
+    b.addEventListener('click',()=>{S.pend=S.pend.filter(x=>x!==id);lightUp(p);renderKpi();});
+    row.append(l,b); els.queueBox.append(row);
+  });
+  els.btnOut.disabled=!(S.curId&&recOf(S.curId)&&(recOf(S.curId).verified||els.mdVerify.value==='light'));
+  els.btnSensor.disabled=!(S.curId&&recOf(S.curId)&&recOf(S.curId).sensor&&!recOf(S.curId).verified);
+  els.btnUnlight.disabled=!(S.active.length||S.pend.length);
+}
+function renderGuide(rec){
+  const card=els.guideCard;
+  if(!rec){card.classList.remove('show');return;}
+  const p=S.parcels.get(rec.pid), s=S.slots.get(p.slotId);
+  card.classList.add('show');
+  els.gdL1.textContent='请前往 · 全程约 '+S.pathSteps+' 步';
+  els.gdL2.textContent=''+ZONES.find(z=>z.id===s.zone).name.split(' · ')[0]+' '+s.row+' 排 ';
+  const u=document.createElement('u'); u.textContent=s.id; els.gdL2.append(u);
+  els.gdL3.textContent='尾号 '+p.tail+' 的包裹 · 灯色 '+COLOR_NAME[rec.color]+
+    (els.mdLight.value==='screen'?'（本模式不亮灯，按地面动线走）':(els.mdSound.value==='silent'?' · 无语音，看屏幕':' · 格口短鸣，不播报取件码'))+
+    (rec.sensor?' · 称重格口，取走即自动核验':'');
+}
+
+function clearLights(){
+  S.active.forEach(a=>{
+    const p=S.parcels.get(a.pid); if(!p) return;
+    p.status='待取';
+    (p.slotIds||[p.slotId]).forEach(sid=>{const s=S.slots.get(sid);if(s&&!s.alarm){s.status='occupied';s.color=-1;paintSlot(sid);}});
+  });
+  S.pend.forEach(id=>{const p=S.parcels.get(id);if(p){p.status='待取';const s=S.slots.get(p.slotId);if(s&&!s.alarm){s.status='occupied';paintSlot(s.id);}}});
+  S.active=[]; S.pend=[]; S.curId=null;
+  HW.unlightAll();
+  HW.screen(['待机中', '请扫码或输入取件码']);
+}
+
+function sensorTrigger(){
+  const a=recOf(S.curId);
+  if(!a) return;
+  const p=S.parcels.get(a.pid), s=S.slots.get(p.slotId);
+  a.verified=true; p.verified=true;
+  log('格口核验：'+s.id+' 称重下降 '+(p.size==='大件'?'2.4kg':'0.6kg')+' + 红外遮挡 0.8s → 判定为真实取走','ok');
+  HW._send('/hw/sensor', {slot: s.id, event:'trigger', type:'weight+ir'});
+  renderQueue(); paintSlot(s.id);
+  setResult(els.pickResult,'格口已核验 · 可出库',[s.id+'（'+(s.sensor?'称重+红外':'灯带')+'）','通过出口复核后即可销号出库'],'big');
+}
+
+function outParcel(id){
+  const a=recOf(id||S.curId);
+  const p=a?S.parcels.get(a.pid):S.parcels.get(id);
+  if(!p||p.status==='已出库') return;
+  const s=S.slots.get(p.slotId);
+  const verify=els.mdVerify.value;
+  if(verify==='strict'&&!a.verified){
+    S.stops++;
+    log('出库被拒：'+s.id+' 未通过格口传感核验（严格模式）','err');
+    setResult(els.pickResult,'出库已拦截 · 未核验',["严格模式下每个格口都需重量/红外确认",'未确认即出库 = 拿错也照样销号，纠纷无法追溯'],'bige');
+    renderKpi(); return;
+  }
+  if(verify==='hybrid'&&a.sensor&&!a.verified){
+    S.risk++;S.stops++;
+    log('出库被拒：'+s.id+' 为称重格口但重量未变 —— 判定「灯亮但没拿走」','err');
+    setResult(els.pickResult,'出库已拦截 · 称重未变化',['顾客说拿到了，但格口重量没变 —— 大概率拿错相邻件','请核对灯色与尾号后重新取件'],'bige');
+    refreshAll(); return;
+  }
+  if(verify!=='light'){
+    log('出口复核：'+p.code3+' 经门禁（标签状态=已核验 / 底单留存）放行','ok');
+    HW.gate('open', {code: p.code3, tail: p.tail});
+  }
+  (p.slotIds||[p.slotId]).forEach(sid=>{
+    const t=S.slots.get(sid);
+    if(t){t.parcelId=null;t.status='empty';t.color=-1;t.shared=false;paintSlot(sid);}
+    HW.unlight(sid);
+    HW.clearTail(sid);
+  });
+  p.status='已出库'; p.slotIds=null;
+  const sec=Math.max(1,Math.round((Date.now()-p.lightAt)/1000));
+  S.times.push(sec); if(S.times.length>40)S.times.shift();
+  S.today.out++;
+  if(a) S.active=S.active.filter(x=>x!==a);
+  S.pend=S.pend.filter(x=>x!==p.id);
+  S.curId=S.active.length?S.active[0].pid:null;
+  promote();
+  els.pkTag.textContent='并发 '+S.active.length+'/'+(+els.mdMax.value);
+  setResult(els.pickResult,'出库完成 · '+p.code3,
+    [s.id+' 已释放 · 本次 '+sec+' 秒 · 平均 '+avgTime().toFixed(1)+' 秒',
+     '核验方式：'+(a.verified?'格口传感':'出口复核')+' · 底单与事件片段已留存','尾号 '+p.tail+' 取走，屏幕未显示完整号码'],'big');
+  HW.screen(['出库完成', '尾号 '+p.tail, '感谢使用']);
+  renderQueue(); renderGuide(S.active.length?S.active[0]:null); refreshAll(); renderChips(); drawHeat(); planPath(S.curId);
+}
+
+function unlight(){
+  const n=S.active.length+S.pend.length;
+  clearLights(); renderQueue(); planPath(null); renderGuide(null);
+  setResult(els.pickResult,'亮灯已复位',['顾客未到架前，库位回到在库状态，不计出库','并发释放 '+n+' 路，候补自动补位'],'bigw');
+  log('柜台复位：熄灭 '+n+' 路灯，库位保持在库','warn');
+  refreshAll(); drawHeat();
+}
+function avgTime(){return S.times.length?S.times.reduce((a,b)=>a+b,0)/S.times.length:0;}
+
+const NS='http://www.w3.org/2000/svg';
+const BLOCKS=new Set();
+const ANCHOR={'门口':[1,13],'柜台':[2,2],'A':[12,7],'B':[20,7],'C':[7,12]};
+function sv(tag,attrs,parent){
+  const e=document.createElementNS(NS,tag);
+  for(const k in attrs) e.setAttribute(k,attrs[k]);
+  if(parent) parent.append(e);
+  return e;
+}
+function buildBlocks(){
+  BLOCKS.clear();
+  ZONES.forEach(z=>z.rows.forEach(r=>{for(let i=0;i<r[2];i++)BLOCKS.add((r[0]+i)+','+r[1]);}));
+  for(let i=0;i<COUNTER.w;i++)BLOCKS.add((COUNTER.x+i)+','+COUNTER.y);
+}
+function canWalk(x,y){return x>=0&&y>=0&&x<GW&&y<GH&&!BLOCKS.has(x+','+y);}
+function congAt(x,y){
+  const g=densityField();let v=0,n=0;
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+    const px=x+dx,py=y+dy;if(px<0||py<0||px>=GW||py>=GH)continue;
+    v+=g[py*GW+px];n++;
+  }
+  return Math.min(1,(v/n)/1.15);
+}
+function alarmNear(x,y){
+  for(const a of S.alarms.values()){
+    if(!a.slotId) continue;
+    const s=S.slots.get(a.slotId);
+    if(s&&Math.abs(s.gx-x)+Math.abs(s.gy-y)<=2) return true;
+  }
+  return false;
+}
+function cellCost(x,y){
+  if(!canWalk(x,y)) return Infinity;
+  let c=1+congAt(x,y)*4.2;
+  if(alarmNear(x,y)) c+=3;
+  return c;
+}
+function astar(sx,sy,tx,ty){
+  const K=(x,y)=>y*GW+x;
+  const g=new Float64Array(GW*GH).fill(Infinity),f=new Float64Array(GW*GH).fill(Infinity);
+  const prev=new Int32Array(GW*GH).fill(-1),done=new Uint8Array(GW*GH);
+  g[K(sx,sy)]=0; f[K(sx,sy)]=Math.abs(tx-sx)+Math.abs(ty-sy);
+  const open=[K(sx,sy)];
+  const D=[[1,0],[-1,0],[0,1],[0,-1]];
+  while(open.length){
+    let bi=0;for(let i=1;i<open.length;i++)if(f[open[i]]<f[open[bi]])bi=i;
+    const cur=open.splice(bi,1)[0];
+    if(done[cur]) continue; done[cur]=1;
+    const cx=cur%GW, cy=Math.floor(cur/GW);
+    if(cx===tx&&cy===ty) break;
+    for(let d=0;d<4;d++){
+      const nx=cx+D[d][0], ny=cy+D[d][1];
+      if(!canWalk(nx,ny)) continue;
+      const nk=K(nx,ny); if(done[nk]) continue;
+      const step=cellCost(nx,ny);
+      if(!isFinite(step)) continue;
+      const ng=g[cur]+step;
+      if(ng<g[nk]){g[nk]=ng;f[nk]=ng+Math.abs(tx-nx)+Math.abs(ty-ny);prev[nk]=cur;open.push(nk);}
+    }
+  }
+  if(!done[K(tx,ty)]) return null;
+  const out=[];let c=K(tx,ty);
+  while(c>=0){out.push([c%GW,Math.floor(c/GW)]);c=prev[c];}
+  return out.reverse();
+}
+function buildFloor(){
+  buildBlocks();
+  const f=els.floor; f.textContent='';
+  sv('rect',{x:0,y:0,width:GW*CELL,height:GH*CELL,fill:S.night?'#04070d':'#081020'},f);
+  for(let x=0;x<=GW;x++) sv('line',{x1:x*CELL,y1:0,x2:x*CELL,y2:GH*CELL,stroke:S.night?'#0b1424':'#101c31','stroke-width':x%4?0.5:1},f);
+  for(let y=0;y<=GH;y++) sv('line',{x1:0,y1:y*CELL,x2:GW*CELL,y2:y*CELL,stroke:S.night?'#0b1424':'#101c31','stroke-width':y%4?0.5:1},f);
+  sv('rect',{x:2,y:2,width:GW*CELL-4,height:GH*CELL-4,fill:'none',stroke:'#22304a','stroke-width':2,rx:8},f);
+  ZONES.forEach(z=>{
+    z.rows.forEach((r,i)=>{
+      sv('rect',{x:r[0]*CELL+1,y:r[1]*CELL+2,width:r[2]*CELL-2,height:CELL-4,fill:S.night?'#101a2c':'#16233c',stroke:'#2b3a58',rx:3},f);
+      const t=sv('text',{x:r[0]*CELL+4,y:r[1]*CELL+CELL-6,fill:'#6f86b4','font-size':9},f);
+      t.textContent=z.id+(i+1)+'排';
+    });
+    const lab=sv('text',{x:z.rows[0][0]*CELL,y:z.rows[0][1]*CELL-4,fill:'#93c5fd','font-size':10,'font-weight':'bold'},f);
+    lab.textContent=z.name;
+  });
+  sv('rect',{x:COUNTER.x*CELL,y:COUNTER.y*CELL+2,width:COUNTER.w*CELL,height:CELL-4,fill:'#1d4ed8',stroke:'#3b82f6',rx:3},f);
+  const ct=sv('text',{x:COUNTER.x*CELL+5,y:COUNTER.y*CELL+CELL-6,fill:'#dbeafe','font-size':9},f);
+  ct.textContent='服务台 / 自助屏';
+  sv('rect',{x:DOOR.x*CELL-6,y:DOOR.y*CELL+4,width:34,height:CELL-8,fill:'#0c2818',stroke:'#22c55e',rx:3},f);
+  const dt=sv('text',{x:DOOR.x*CELL-8,y:DOOR.y*CELL-1,fill:'#86efac','font-size':9},f); dt.textContent='入口';
+  sv('rect',{x:GATE.x*CELL,y:GATE.y*CELL+4,width:GATE.w*CELL,height:CELL-8,fill:'#31220c',stroke:'#f59e0b',rx:3},f);
+  const gt=sv('text',{x:GATE.x*CELL-2,y:GATE.y*CELL-1,fill:'#fbbf24','font-size':9},f); gt.textContent='出口复核';
+  els.pathLayer=sv('g',{id:'pathLayer'},f);
+  els.walker=sv('circle',{r:5,fill:'#22d3ee',stroke:'#0e7490','stroke-width':1.5,cx:-20,cy:-20},f);
+}
+function ramp(t){
+  t=Math.max(0,Math.min(1,t));
+  const stops=[[29,78,216],[34,211,238],[34,197,94],[245,158,11],[239,68,68]];
+  const i=Math.min(4,Math.floor(t*4)),j=Math.min(4,i+1),k=(t*4-i)%1;
+  const a=stops[i],b=stops[j];
+  return 'rgb('+Math.round(a[0]+(b[0]-a[0])*k)+','+Math.round(a[1]+(b[1]-a[1])*k)+','+Math.round(a[2]+(b[2]-a[2])*k)+')';
+}
+function concatPath(list){
+  const out=[];
+  for(const seg of list){
+    if(!seg) return null;
+    seg.forEach(c=>{
+      const last=out[out.length-1];
+      if(!last||last[0]!==c[0]||last[1]!==c[1]) out.push(c);
+    });
+  }
+  return out;
+}
+let walkRaf=0;
+function planPath(pid){
+  const counter=[COUNTER.x,COUNTER.y+1];
+  const a=S.active.find(x=>x.pid===pid);
+  const p=a?S.parcels.get(a.pid):(pid?S.parcels.get(pid):null);
+  if(!p){
+    S.path=astar(DOOR.x,DOOR.y,counter[0],counter[1]);
+    S.pathSteps=S.path?S.path.length:0;
+    drawPath();
+    els.pathNote.textContent='动线待规划 —— 查件后自动绘制「入口 → 自助屏 → 目标格口 → 出口复核」避堵路线。';
+    return;
+  }
+  const targets=(p.slotIds||[p.slotId]).map(id=>S.slots.get(id));
+  targets.sort((x,y)=>(x.zone+y.zone)-(x.zone+x.zone)||dist(x.aisle,DOOR)-dist(y.aisle,DOOR));
+  const legs=[astar(DOOR.x,DOOR.y,counter[0],counter[1])];
+  let cur=counter;
+  targets.forEach(t=>{const leg=astar(cur[0],cur[1],t.aisle[0],t.aisle[1]);legs.push(leg);cur=t.aisle.slice();});
+  legs.push(astar(cur[0],cur[1],GATE.x,GATE.y));
+  const cells=concatPath(legs);
+  if(!cells){S.path=null;S.pathSteps=0;drawPath();els.pathNote.textContent='目标格口通道被占满，无法规划 —— 请先处置该区异常。';return;}
+  S.path=cells; S.pathSteps=cells.length+2;
+  drawPath();
+  let jam=0,warn=0;const total=Math.ceil(cells.length/4);
+  for(let i=0;i<cells.length;i+=4){
+    const seg=cells.slice(i,i+4);
+    if(Math.max.apply(null,seg.map(v=>congAt(v[0],v[1])))>0.62) jam++;
+    if(seg.some(v=>alarmNear(v[0],v[1]))) warn++;
+  }
+  const naive=targets.reduce((sum,t)=>sum+dist(DOOR,t.aisle)*2,0);
+  const advice=offpeakAdvice();
+  els.pathNote.textContent='入口 → 自助屏 → '+targets.map(t=>t.id).join(' → ')+S.pathSteps+' 步（'+
+    Math.round(S.pathSteps*0.9)+' 秒）· 拥堵段 '+jam+'/'+total+(warn?' · 绕行告警格口':'')+
+    (targets.length>1?'\n一人多件合并：按区顺序串行取件，比逐件往返节省约 '+Math.max(2,Math.round(naive-cells.length))+' 步':'')+
+    '\n'+advice;
+}
+function offpeakAdvice(){
+  const now=new Date(),h=now.getHours()+now.getMinutes()/60;
+  const D=weekData(),day=now.getDay()===0?6:now.getDay()-1;
+  let best=null,bestV=2;
+  D.grid[day].forEach((v,i)=>{const t=8+i;if(t>h+0.4&&v<bestV){bestV=v;best=t;}});
+  const cur=D.grid[day][clamp(Math.round(h)-8,0,11)]||0;
+  if(cur<0.4) return '当前时段人流指数 '+Math.round(cur*100)+'（较低），无需错峰';
+  return '当前时段人流指数 '+Math.round(cur*100)+'，建议错峰：'+(best!==null?pad(best,2)+':30 后来取（指数 '+Math.round(bestV*100)+'）':'明日 8:00 前');
+}
+function drawPath(){
+  if(!els.pathLayer) return;
+  els.pathLayer.textContent='';
+  cancelAnimationFrame(walkRaf);
+  const cells=S.path;
+  if(!cells||!cells.length){els.walker.setAttribute('cx',-20);return;}
+  const pts=cells.map(v=>[v[0]*CELL+CELL/2,v[1]*CELL+CELL/2]);
+  for(let i=0;i<pts.length-1;i+=4){
+    const seg=pts.slice(i,Math.min(pts.length,i+5));
+    if(seg.length<2) continue;
+    const c=Math.max.apply(null,cells.slice(i,Math.min(cells.length,i+4)).map(v=>congAt(v[0],v[1])));
+    sv('path',{d:'M '+seg.map(v=>v[0]+' '+v[1]).join(' L '),fill:'none',stroke:ramp(c),
+      'stroke-width':c>0.62?7:5,'stroke-linecap':'round','stroke-linejoin':'round',opacity:S.night?.55:.85},els.pathLayer);
+  }
+  sv('path',{d:'M '+pts.map(v=>v[0]+' '+v[1]).join(' L '),fill:'none',stroke:S.night?'#7dd3fc':'#e8eeff',
+    'stroke-width':1.4,'stroke-dasharray':'4 7',opacity:.7},els.pathLayer);
+  const last=pts[pts.length-1];
+  sv('circle',{cx:last[0],cy:last[1],r:7,fill:'none',stroke:'#22d3ee','stroke-width':1.5},els.pathLayer);
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){
+    els.walker.setAttribute('cx',last[0]);els.walker.setAttribute('cy',last[1]);return;
+  }
+  let total=0;const cum=[0];
+  for(let i=1;i<pts.length;i++){total+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);cum.push(total);}
+  const t0=performance.now();
+  function step(now){
+    const d=((now-t0)/1000*62)%Math.max(1,total);
+    let i=1;while(i<cum.length-1&&cum[i]<d)i++;
+    const f=(d-cum[i-1])/Math.max(.001,cum[i]-cum[i-1]);
+    els.walker.setAttribute('cx',(pts[i-1][0]+(pts[i][0]-pts[i-1][0])*f).toFixed(1));
+    els.walker.setAttribute('cy',(pts[i-1][1]+(pts[i][1]-pts[i-1][1])*f).toFixed(1));
+    walkRaf=requestAnimationFrame(step);
+  }
+  walkRaf=requestAnimationFrame(step);
+}
+
+let fieldCache=null,fieldStamp=0;
+function densityField(){
+  if(fieldCache&&Date.now()-fieldStamp<400) return fieldCache;
+  const g=new Float32Array(GW*GH);
+  for(const k in ANCHOR){
+    const cx=ANCHOR[k][0],cy=ANCHOR[k][1],n=S.crowd[k]||0;
+    for(let y=Math.max(0,cy-5);y<=Math.min(GH-1,cy+5);y++)
+      for(let x=Math.max(0,cx-6);x<=Math.min(GW-1,cx+6);x++)
+        g[y*GW+x]+=n*Math.exp(-((x-cx)*(x-cx)/8+(y-cy)*(y-cy)/4.5))/12;
+  }
+  for(const a of S.alarms.values()){
+    if(!a.slotId) continue;
+    const s=S.slots.get(a.slotId);
+    if(s&&canWalk(s.aisle[0],s.aisle[1])) g[s.aisle[1]*GW+s.aisle[0]]+=0.4;
+  }
+  fieldCache=g;fieldStamp=Date.now();return g;
+}
+function canvasFit(cv){
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  let w = cv.clientWidth || cv.parentElement?.clientWidth || 460;
+  let h = cv.clientHeight || cv.parentElement?.clientHeight || 296;
+  if (w < 10) w = 460; 
+  if (h < 10) h = 296;
+  cv.width=Math.round(w*dpr);
+  cv.height=Math.round(h*dpr);
+  const ctx=cv.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx,w,h};
+}
+function drawHeat(){if(S.mode==='real')drawRealHeat();else drawWeekHeat();}
+function drawRealHeat(){
+  fieldCache=null;
+  const f=canvasFit(els.heat),ctx=f.ctx,w=f.w,h=f.h;
+  if(!w || !h || isNaN(w) || isNaN(h)) return;
+
+  const sx=w/(GW*CELL),sy=h/(GH*CELL);
+  ctx.clearRect(0,0,w,h);ctx.fillStyle=S.night?'#04070d':'#081020';ctx.fillRect(0,0,w,h);
+  
+  const lw=132,lh=83,g=densityField();
+  let mx=0;for(let i=0;i<g.length;i++)if(g[i]>mx)mx=g[i];
+  mx=Math.max(0.35,mx*0.8);
+  
+  const off=document.createElement('canvas');
+  off.width=lw; off.height=lh;
+  const oc=off.getContext('2d');
+  const img=oc.createImageData(lw,lh);
+  
+  for(let y=0;y<lh;y++){
+    for(let x=0;x<lw;x++){
+      const gx=Math.min(GW-1,Math.floor(x/lw*GW)),gy=Math.min(GH-1,Math.floor(y/lh*GH));
+      img.data[(y*lw+x)*4+3]=Math.round(Math.min(1,g[gy*GW+gx]/mx)*255);
+    }
+  }
+  oc.putImageData(img,0,0);
+  
+  const src=oc.getImageData(0,0,lw,lh),out=oc.createImageData(lw,lh);
+  for(let i=0;i<src.data.length;i+=4){
+    const t=src.data[i+3]/255;
+    if(t<0.05){out.data[i+3]=0;continue;}
+    const c=ramp(t).replace(/[^\d,]/g,'').split(',');
+    out.data[i]=+c[0];out.data[i+1]=+c[1];out.data[i+2]=+c[2];
+    out.data[i+3]=Math.round(Math.min(1,t*1.18)*(S.night?150:200));
+  }
+  oc.putImageData(out,0,0);
+  
+  ctx.imageSmoothingEnabled=true;
+  ctx.drawImage(off, 0, 0, lw, lh, 0, 0, w, h);
+  
+  ZONES.forEach(z=>{
+    z.rows.forEach(r=>{
+      ctx.globalAlpha=.7;ctx.fillStyle='#0d1728';
+      ctx.fillRect(r[0]*CELL*sx,(r[1]*CELL+2)*sy,(r[2]*CELL-2)*sx,(CELL-4)*sy);
+      ctx.globalAlpha=1;ctx.strokeStyle='#2b3a58';ctx.lineWidth=1;
+      ctx.strokeRect(r[0]*CELL*sx,(r[1]*CELL+2)*sy,(r[2]*CELL-2)*sx,(CELL-4)*sy);
+      ctx.fillStyle='#8fa6cf';ctx.font='10px sans-serif';
+      ctx.fillText(z.id+(S.crowd[z.id]||0)+'人',r[0]*CELL*sx+3,(r[1]*CELL+CELL-4)*sy);
+    });
+  });
+  ctx.fillStyle='#86efac';ctx.fillText('入口',(DOOR.x*CELL-8)*sx+2,(DOOR.y*CELL+2)*sy);
+  ctx.fillStyle='#fbbf24';ctx.fillText('出口复核',GATE.x*CELL*sx-2,(GATE.y*CELL+2)*sy);
+  for(const a of S.alarms.values()){
+    if(!a.slotId) continue;
+    const s=S.slots.get(a.slotId);if(!s) continue;
+    ctx.fillStyle=a.lv==='err'?'#ef4444':'#f59e0b';
+    ctx.beginPath();ctx.arc((s.gx+0.5)*CELL*sx,(s.gy+0.5)*CELL*sy,4,0,6.3);ctx.fill();
+  }
+  els.heatHit={type:'zone'};
+  els.heatTip.textContent='实时：门口 '+(S.crowd.门口|0)+' · 柜台 '+(S.crowd.柜台|0)+' · A '+(S.crowd.A|0)+' · B '+(S.crowd.B|0)+' · C '+(S.crowd.C|0)+' 人';
+}
+function weekData(){
+  const rows=['周一','周二','周三','周四','周五','周六','周日'];
+  const cols=[];for(let hh=8;hh<20;hh++)cols.push(hh+':00');
+  const r2=mulberry32(7720261),grid=[];
+  rows.forEach((_,d)=>{
+    const arr=[];
+    cols.forEach((__,c)=>{
+      const t=8+c;
+      const lunch=Math.exp(-Math.pow(t-12.6,2)/1.6);
+      const eve=Math.exp(-Math.pow(t-17.8,2)/2.3);
+      const wk=d>=5?0.55:1;
+      const noon=(d===2||d===3)?1.18:1;
+      arr.push(Math.min(1,(lunch*0.78+eve*1.02)*wk*noon*(0.78+r2()*0.42)));
+    });
+    grid.push(arr);
+  });
+  return {rows,cols,grid};
+}
+function drawWeekHeat(){
+  const f=canvasFit(els.heat),ctx=f.ctx,w=f.w,h=f.h,D=weekData();
+  if(!w || !h || isNaN(w) || isNaN(h)) return;
+  ctx.clearRect(0,0,w,h);ctx.fillStyle=S.night?'#04070d':'#081020';ctx.fillRect(0,0,w,h);
+  const padL=Math.min(50,w*0.15),padT=24,padB=20;
+  const cw=(w-padL-10)/D.cols.length,ch=(h-padT-padB)/D.rows.length;
+  ctx.font='11px sans-serif';ctx.textBaseline='middle';
+  D.cols.forEach((c,i)=>{if(i%2===0){ctx.fillStyle='#6b7ba0';ctx.fillText(c,padL+i*cw+cw/2-14,padT-12);}});
+  const hits=[];
+  D.rows.forEach((r,j)=>{
+    ctx.fillStyle='#93a6cc';ctx.fillText(r,4,padT+j*ch+ch/2);
+    D.grid[j].forEach((v,i)=>{
+      const x=padL+i*cw,y=padT+j*ch;
+      ctx.fillStyle=ramp(v);ctx.globalAlpha=.3+v*.62;
+      ctx.fillRect(x+1,y+1,cw-2,ch-2);ctx.globalAlpha=1;
+      hits.push({x:padL+i*cw,y:padT+j*ch,w:cw,h:ch,label:r+' '+D.cols[i]+' 人流指数 '+Math.round(v*100)});
+      if(v>0.84){ctx.fillStyle='#0b1220';ctx.font='bold 10px sans-serif';ctx.fillText('峰',x+cw/2-5,y+ch/2);ctx.font='11px sans-serif';}
+    });
+  });
+  ctx.fillStyle='#6b7ba0';ctx.font='10px sans-serif';ctx.textBaseline='alphabetic';
+  ctx.fillText('演示数据 · 近 7 日按小时到店人流指数（0-100），错峰建议由此推算',padL,h-6);
+  els.heatHit={type:'week',hits};
+  els.heatTip.textContent='7 日时段：午峰 12-13 点、晚峰 17-19 点';
+}
+function heatClick(ev){
+  const rect=els.heat.getBoundingClientRect();
+  const x=ev.clientX-rect.left,y=ev.clientY-rect.top;
+  if(S.mode==='week'){
+    const hit=(els.heatHit.hits||[]).find(v=>x>=v.x&&x<=v.x+v.w&&y>=v.y&&y<=v.y+v.h);
+    if(hit){els.heatTip.textContent=hit.label;log('热力查询：'+hit.label,'info');}
+    return;
+  }
+  const gx=Math.floor(x/rect.width*GW),gy=Math.floor(y/rect.height*GH);
+  let best=null,bd=99;
+  for(const k in ANCHOR){const d=Math.hypot(ANCHOR[k][0]-gx,ANCHOR[k][1]-gy);if(d<bd){bd=d;best=k;}}
+  if(best&&'ABC'.includes(best)&&bd<7){
+    const node=document.querySelector('[data-slot="'+best+'1-01"]');
+    if(node) node.scrollIntoView({block:'nearest',behavior:'smooth'});
+    els.ztHint.textContent='已定位 '+best+'区 · '+(S.crowd[best]|0)+' 人 · 在架率 '+Math.round(zoneLoadZone(best)*100)+'%';
+    log('热区跳转 → '+ZONES.find(t=>t.id===best).name+'（引导新用户走 '+best+' 区侧通道）','info');
+  }else els.heatTip.textContent='点击 A/B/C 区热区跳到对应货架排';
+}
+
+function pushAlarm(type,data){
+  const d=ANO_DEF[type];
+  S.alarmSeq++;
+  const a=Object.assign({id:'AL'+S.alarmSeq,type,lv:d.lv,do:d.do,at:Date.now(),trace:null},data||{});
+  S.alarms.set(a.id,a);
+  renderAlarms(); renderKpi();
+  return a;
+}
+function slotAlarm(slotId,type){
+  const s=S.slots.get(slotId); if(!s) return;
+  s.alarm=type; if(s.status!=='lit') s.status='alarm'; paintSlot(slotId);
+  HW.light(slotId, 0, 'alarm');
+  HW.beep(slotId, 'alarm');
+}
+function relocate(p,toId){
+  (p.slotIds||[p.slotId]).forEach(sid=>{
+    const t=S.slots.get(sid);
+    if(t&&t.parcelId===p.id){t.parcelId=null;t.shared=false;if(!t.alarm){t.status='empty';t.color=-1;}paintSlot(sid);HW.unlight(sid);HW.clearTail(sid);}
+  });
+  placeParcel(p,toId);
+}
+function ensureTempRow(){
+  if(ZONES.some(z=>z.id==='T')) return S.slots.get('T1-01');
+  const tids=[];for(let i=0;i<6;i++)tids.push('T1-'+pad(i+1,2));
+  ZONES.push({id:'T',no:4,name:'临时区 · 溢出分流',types:['文件','小件','中件','大件','生鲜','高价值'],rows:[[17,13,6]],slotIds:tids});
+  S.crowd.T=1; ANCHOR['T']=[20,12];
+  tids.forEach((id,i)=>S.slots.set(id,{id,zone:'T',no:4,row:1,idx:i+1,gx:17+i,gy:13,aisle:[17+i,14],
+    status:'empty',parcelId:null,sensor:false,temp:true,alarm:null,ledOk:true,color:-1}));
+  buildRack(); buildFloor(); refreshAll();
+  log('已开启临时库位 6 个（靠出口通道的 T1 排）','warn');
+  return S.slots.get('T1-01');
+}
+function inject(type){
+  const occ=[...S.parcels.values()].filter(p=>p.status==='待取'&&!p.alarmed);
+  if(type!=='offline'&&type!=='exit'&&!occ.length){log('无可注入的在库件，先「整筐入库 ×8」','warn');return;}
+  if(type==='offline'){
+    if(!S.scanner){log('设备已离线，无需重复注入','warn');return;}
+    S.scanner=false;
+    els.dotScanner.className='dot off';els.txtScanner.textContent='离线';
+    els.btnAllocate.disabled=true;els.btnRfid.disabled=true;els.btnPick.disabled=true;
+    pushAlarm('offline',{msg:'2 号入库读写器 + 柜台核验枪同时离线'});
+    log('异常注入：设备离线 —— 入库/取件通道中断，人工台账兜底启动','err');
+    return;
+  }
+  if(type==='exit'){
+    const p=pick(occ);
+    pushAlarm('exit',{slotId:p.slotId,parcelId:p.id,
+      msg:'出口门禁告警：'+p.code3+'（尾号'+p.tail+'）灯未亮/未核验却被带离，RFID 读到在库标签'});
+    S.stops++;
+    log('异常注入：未核验带出被出口复核拦下（'+p.slotId+'）','err');
+    refreshAll(); renderKpi(); return;
+  }
+  if(type==='wrong'){
+    const p=pick(occ), other=pick(occ.filter(x=>x.id!==p.id&&x.tail!==p.tail));
+    if(!other){log('件数不足，无法制造误拿','warn');return;}
+    p.frozen=true; p.alarmed='wrong'; other.frozen=true;
+    S.risk+=2;
+    slotAlarm(p.slotId,'wrong');
+    pushAlarm('wrong',{slotId:p.slotId,parcelId:p.id,
+      msg:'尾号'+other.tail+' 拿走尾号'+p.tail+' 的 '+p.code3+'（相邻格口同色误拿）· 两件已冻结待复核'});
+    log('异常注入：顾客误拿他人件 → 双件冻结，店员复核','err');
+    refreshAll(); return;
+  }
+  if(type==='led'){
+    const p=pick(occ), s=S.slots.get(p.slotId);
+    s.ledOk=false; s.alarm='led'; s.status='alarm'; paintSlot(s.id);
+    p.alarmed='led';
+    HW.light(s.id, -1, 'off');
+    HW.markDead(s.id, true);
+    HW.screen(['该格口灯条失效', '请按屏幕/动线引导找件', '库位 '+s.id]);
+    pushAlarm('led',{slotId:s.id,parcelId:p.id,
+      msg:s.id+' 灯条未亮（被相邻件遮挡/电池失效）· 用户只听声找不到位'});
+    log('异常注入：灯条失效 → '+s.id+'（可切「纯屏幕/动线引导」验证不依赖灯）','err');
+    refreshAll(); return;
+  }
+  if(type==='missort'){
+    const p=pick(occ);
+    const bad=ZONES.filter(z=>!z.types.includes(p.size)&&z.id!=='T');
+    const slot=empties(bad.map(z=>z.id))[0];
+    if(!slot){log('错误区无空位，换个件型再试','warn');return;}
+    relocate(p,slot.id); p.alarmed='missort'; slotAlarm(slot.id,'missort');
+    pushAlarm('missort',{slotId:slot.id,parcelId:p.id,
+      msg:p.size+' 件被投进 '+slot.id+'（该区仅放 '+ZONES.find(z=>z.id===slot.zone).types.join('/')+'）'});
+    log('异常注入：错分上架 → '+p.code3+' 落入 '+slot.id,'err');
+  }else if(type==='overdue'){
+    const p=occ.slice().sort((a,b)=>a.inAt-b.inAt)[0];
+    p.inAt-=96*H; p.overdue=true; p.alarmed='overdue';
+    slotAlarm(p.slotId,'overdue');
+    pushAlarm('overdue',{slotId:p.slotId,parcelId:p.id,
+      msg:S.slots.get(p.slotId).id+' · 尾号'+p.tail+' 已滞留 '+ageText(p.inAt)+'，超 72 小时'});
+    log('异常注入：超时未取（'+ageText(p.inAt)+'）','warn');
+  }else if(type==='conflict'){
+    const p1=pick(occ),p2=pick(occ.filter(x=>x.id!==p1.id&&x.slotId!==p1.slotId));
+    if(!p2){log('件数不足','warn');return;}
+    const s1=S.slots.get(p1.slotId);
+    p2.alarmed='conflict'; slotAlarm(s1.id,'conflict');
+    pushAlarm('conflict',{slotId:s1.id,parcelId:p2.id,
+      msg:p1.code3+' 与 '+p2.code3+' 被登记到同一格口 '+s1.id});
+    log('异常注入：库位冲突 → '+s1.id+' 双件占用','err');
+  }else if(type==='full'){
+    const z=pick(ZONES.filter(x=>x.id!=='T'));
+    const free=empties([z.id]);
+    if(free.length<2){log(z.name+' 本就接近满载','warn');return;}
+    free.forEach(s=>{const p=newParcel({size:pick(z.types),inAt:Date.now()-ri(1,40)*H});placeParcel(p,s.id);S.today.in++;});
+    pushAlarm('full',{zone:z.id,slotId:z.slotIds[0],msg:z.name+' '+z.slotIds.length+'/'+z.slotIds.length+' 满载，新件无法上架'});
+    log('异常注入：'+z.name+' 满载（补入 '+free.length+' 件）','err');
+  }
+  refreshAll(); renderChips(); drawHeat();
+}
+function dispose(id){
+  const a=S.alarms.get(id); if(!a) return;
+  const s=a.slotId?S.slots.get(a.slotId):null;
+  const p=a.parcelId?S.parcels.get(a.parcelId):null;
+  if(a.type==='offline'){
+    const btn=document.querySelector('[data-aid="'+a.id+'"]');
+    if(btn){btn.textContent='重启中…';btn.disabled=true;}
+    setTimeout(()=>{
+      S.scanner=true;
+      els.dotScanner.className='dot on';els.txtScanner.textContent='在线';
+      els.btnAllocate.disabled=false;els.btnRfid.disabled=false;els.btnPick.disabled=false;
+      finishAlarm(a,'读写器已联机，入库/取件通道恢复');
+    },1600);
+    log('处置：重启扫码/读写设备（约 1.6 秒）','info');
+    return;
+  }
+  if(a.type==='missort'&&p&&s){
+    const target=empties(allowedZones(p.size))[0];
+    if(!target){ensureTempRow();relocate(p,'T1-01');}else relocate(p,target.id);
+    s.alarm=null;s.status='empty';paintSlot(s.id);p.alarmed=null;
+    HW.unlight(s.id);HW.markDead(s.id,false);
+    finishAlarm(a,'已改派至 '+p.slotId+'（'+p.size+' 合规区）');
+  }else if(a.type==='overdue'&&p){
+    (p.slotIds||[p.slotId]).forEach(sid=>{const t=S.slots.get(sid);if(t){t.parcelId=null;t.alarm=null;t.status='empty';t.shared=false;paintSlot(sid);HW.unlight(sid);HW.clearTail(sid);}});
+    p.status='超期退回';p.alarmed=null;p.slotIds=null;S.today.out++;
+    finishAlarm(a,'超期件 '+p.code3+' 强制出库并登记退回，格口已释放');
+  }else if(a.type==='conflict'&&p){
+    const target=empties(allowedZones(p.size))[0]||empties()[0];
+    if(!target){ensureTempRow();relocate(p,'T1-01');}else relocate(p,target.id);
+    p.alarmed=null;
+    if(s){s.alarm=null;s.status=s.parcelId?'occupied':'empty';paintSlot(s.id);HW.unlight(s.id);HW.markDead(s.id,false);}
+    finishAlarm(a,'冲突已拆分：'+p.code3+' 改派至 '+p.slotId);
+  }else if(a.type==='full'){
+    const z=ZONES.find(x=>x.id===a.zone)||ZONES[0];
+    const move=z.slotIds.map(i=>S.slots.get(i)).filter(x=>x.parcelId).map(x=>S.parcels.get(x.parcelId))
+      .sort((x,y)=>x.inAt-y.inAt).slice(0,5);
+    ensureTempRow();
+    move.forEach((pp,i)=>{const t=S.slots.get('T1-'+pad(i+1,2));if(t&&!t.parcelId)relocate(pp,t.id);});
+    finishAlarm(a,z.name+' 溢出分流 '+move.length+' 件至临时区，恢复上架能力');
+  }else if(a.type==='led'&&s){
+    s.alarm=null;s.ledOk=false;s.status=p?'occupied':'empty';paintSlot(s.id);
+    if(p) p.alarmed=null;
+    HW.markDead(s.id, true);
+    HW.screen(['库位 '+s.id, '灯条故障', '请按屏幕引导取件']);
+    finishAlarm(a,'该格口转「屏幕+动线引导」并生成换灯条工单，不依赖灯也能取件');
+  }else if(a.type==='wrong'){
+    S.parcels.forEach(x=>{x.frozen=false;});
+    if(p){p.alarmed=null;if(s){s.alarm=null;s.status='occupied';paintSlot(s.id);}}
+    if(a.parcel2)S.parcels.get(a.parcel2)&&(S.parcels.get(a.parcel2).alarmed=null);
+    finishAlarm(a,'底单+视频核对完成：错拿件已归位并重新绑定灯条');
+  }else if(a.type==='exit'&&p){
+    S.stops++;
+    (p.slotIds||[p.slotId]).forEach(sid=>{const t=S.slots.get(sid);if(t){t.parcelId=null;t.status='empty';paintSlot(sid);HW.unlight(sid);HW.clearTail(sid);}});
+    p.status='已出库';p.alarmed=null;p.slotIds=null;S.today.out++;
+    finishAlarm(a,'复核确认属实取走，补验身份后放行并销号');
+  }else finishAlarm(a,'处置完成');
+  refreshAll(); renderChips(); drawHeat();
+}
+function finishAlarm(a,msg){
+  a.trace='CAM-'+(a.slotId?a.slotId.replace('-',''):'GATE')+' · 事件前后 120 秒片段已留存 · 底单快照 1 张';
+  a.msg=msg;
+  setTimeout(()=>{S.alarms.delete(a.id);renderAlarms();renderKpi();log('闭环销号 · '+ANO_DEF[a.type].label,'ok');},2600);
+  log('处置：'+ANO_DEF[a.type].label+' → '+msg,'ok');
+  renderAlarms(); renderKpi();
+}
+function renderAlarms(){
+  els.alarmBox.textContent='';
+  const list=[...S.alarms.values()];
+  els.anoTag.textContent=list.length+' 待处置';
+  if(!list.length){
+    const h=document.createElement('div');h.className='hint';h.textContent='当前无异常告警。上方按钮可注入 8 类现实故障，每条都带处置动作。';
+    els.alarmBox.append(h);return;
+  }
+  list.forEach(a=>{
+    const row=document.createElement('div');row.className='alarm-item lv-'+a.lv;
+    const m=document.createElement('div');m.className='msg';
+    m.textContent='['+ANO_DEF[a.type].label+'] '+a.msg;
+    const i=document.createElement('i');
+    i.textContent=fmtTime(new Date(a.at))+' · '+(a.trace?a.trace:'影响：'+(a.slotId?a.slotId+' 格口':(a.zone?a.zone+' 区':'设备通道'))+' · 声光/动线/热力已联动');
+    m.append(i);
+    const ops=document.createElement('div');ops.className='ops';
+    if(a.type!=='offline'&&a.type!=='exit'){
+      const tb=document.createElement('button');tb.className='ghost';tb.textContent='回溯';
+      tb.addEventListener('click',()=>{
+        const tip='视频回溯：CAM-'+(a.slotId||'GATE')+' 事件前后 120 秒 + 底单快照（演示占位，不含真实影像）';
+        els.heatTip.textContent=tip;log(tip,'info');
+      });
+      ops.append(tb);
+    }
+    const b=document.createElement('button');b.className=a.lv==='err'?'err':'warn';
+    b.textContent=ANO_DEF[a.type].do;b.dataset.aid=a.id;
+    b.addEventListener('click',()=>dispose(a.id));
+    ops.append(b);
+    row.append(m,ops); els.alarmBox.append(row);
+  });
+}
+
+function renderKpi(){
+  const stock=[...S.parcels.values()].filter(p=>p.status==='待取'||p.status==='取件中'||p.status==='候补').length;
+  els.kStock.textContent=stock;
+  els.kIn.textContent=S.today.in;
+  els.kInSec.textContent=(S.inCnt?(S.inSec/S.inCnt).toFixed(1):'0');
+  els.kOut.textContent=S.today.out;
+  els.kLit.textContent=S.active.length;
+  els.kMax.textContent=els.mdMax.value;
+  els.kPend.textContent=S.pend.length;
+  els.kRisk.textContent=S.risk;
+  els.kAlarm.textContent=S.alarms.size;
+  els.kTime.textContent=avgTime().toFixed(1);
+  els.kStop.textContent=S.stops;
+  els.pkTag.textContent='并发 '+S.active.length+'/'+(+els.mdMax.value);
+  els.anoTag.textContent=S.alarms.size+' 待处置';
+}
+function autoArrive(){
+  if(!S.scanner) return;
+  doIntake(true);
+}
+function autoTake(){
+  const list=[...S.parcels.values()].filter(p=>p.status==='待取'&&!p.alarmed&&!p.overdue&&!p.frozen).sort((a,b)=>a.inAt-b.inAt);
+  if(!list.length) return;
+  const p=list[0],s=S.slots.get(p.slotId);
+  (p.slotIds||[p.slotId]).forEach(sid=>{const t=S.slots.get(sid);if(t){t.parcelId=null;t.status='empty';t.color=-1;t.shared=false;paintSlot(sid);HW.unlight(sid);HW.clearTail(sid);}});
+  p.status='已出库';p.slotIds=null;S.today.out++;
+  const sec=ri(25,150);S.times.push(sec);if(S.times.length>40)S.times.shift();
+  if(p.slotId&&s.sensor) log('自助取件 '+p.code3+'（'+s.id+' 称重格口）· 出口复核放行 · '+sec+'s','info');
+  else log('自助取件 '+p.code3+'（'+s.id+'）· 出口复核放行 · '+sec+'s','info');
+  paintZone();renderKpi();renderChips();
+}
+function autoVerify(){
+  S.active.forEach(a=>{
+    if(a.sensor&&!a.verified&&Date.now()-a.t0>9000){
+      a.verified=true;
+      const p=S.parcels.get(a.pid);
+      log('格口自动核验：'+p.slotId+' 重量下降已确认（尾号'+p.tail+'）','ok');
+      HW._send('/hw/sensor', {slot: p.slotId, event:'auto', type:'weight'});
+      renderQueue();paintSlot(p.slotId);
+    }
+  });
+}
+function autoOverdue(){
+  const p=[...S.parcels.values()].find(x=>x.status==='待取'&&!x.alarmed&&Date.now()-x.inAt>72*H);
+  if(!p) return;
+  p.alarmed='overdue';p.overdue=true;
+  slotAlarm(p.slotId,'overdue');
+  pushAlarm('overdue',{slotId:p.slotId,parcelId:p.id,msg:S.slots.get(p.slotId).id+' · 尾号'+p.tail+' 滞留 '+ageText(p.inAt)+'，超 72 小时'});
+  log('系统巡检：发现超时未取件 '+p.code3,'warn');
+}
+function tick(){
+  if(!S.open) return;
+  ['门口','柜台','A','B','C','T'].forEach(k=>{
+    if(S.crowd[k]===undefined) return;
+    const cur=S.curId&&S.parcels.get(S.curId)?(S.slots.get(S.parcels.get(S.curId).slotId)||{}).zone:null;
+    S.crowd[k]=clamp(S.crowd[k]+ri(-2,2)+(k===cur?1:0),0,k==='门口'?22:16);
+  });
+  const crowd=Object.keys(S.crowd).reduce((a,k)=>a+(S.crowd[k]|0),0);
+  if(crowd>S.peak)S.peak=crowd;
+  if(rnd()<0.3) autoArrive();
+  if(rnd()<0.24) autoTake();
+  autoVerify();
+  if(rnd()<0.07) autoOverdue();
+  promote();
+  fieldCache=null;
+  renderKpi();paintZone();
+  if(S.mode==='real') drawRealHeat();
+  if(S.path&&(S.heatFrame%3===0)) drawPath();
+  S.heatFrame++;
+  if(S.active.length>=+els.mdMax.value&&S.pend.length&&S.heatFrame%6===0){
+    log('并发已达 '+S.active.length+' 路上限，'+S.pend.length+' 人在候补 —— 逐组点亮，全场不齐闪','warn');
+  }
+  if(S.night&&els.mdSound.value==='broadcast'){
+    log('夜间模式已强制静音，全场广播被策略拦截','warn');
+  }
+}
+function setNight(on){
+  S.night=on;
+  document.body.classList.toggle('night',on);
+  els.btnNight.textContent=on?'退出夜间模式':'进入夜间模式';
+  els.btnNight.className=on?'primary':'ghost';
+  buildFloor(); if(S.path) drawPath(); drawHeat();
+  els.whySound.textContent=on?'夜间已静音：只留灯 + 屏，不广播、不播报取件码':'白天：格口定向短鸣即可';
+  log(on?'进入夜间模式：广播静音、灯带亮度下调、屏幕只显尾号（规避扰民与隐私泄露）':'退出夜间模式：恢复定向短鸣与正常亮度','ok');
+  HW.night(on);
+  if(on) HW.screen(['夜间模式', '只显尾号', '请按灯色找件']);
+  else HW.screen(['营业中', '请扫码或输入取件码']);
+}
+
+const BOM=[
+  {lv:'核心',name:'灯带 + 屏幕大字 + 地面动线',price:'约 0.6–1.2 万 / 站',kind:'人机协同 · 引导主设备',
+   why:'WS2812B 灯带做格口引导，屏幕显「B 区 3 排 B-03 · 尾号 4021」，动线箭头带路；灯坏也能取。',
+   pts:['同用户同色 + 同区同节奏，7 色用尽自动候补','不装 App 也能取（取件码 / 尾号 / 单号三通道）','夜间自动静音，语音不播报取件码']},
+  {lv:'核心',name:'声光调度器（软件，零增硬件）',price:'约 0.1–0.3 万 / 站',kind:'人机协同 · 解决声光派对',
+   why:'并发上限 + 排队点亮 + 定向短鸣替代全场广播，高峰期不再满屋齐闪齐响。',
+   pts:['同时亮灯默认 3 路，其余候补排队','提示音只在目标格口短鸣（日间 62dB 量级）','广播模式保留为对照，可切换比较']},
+  {lv:'协同',name:'视觉辅助校验（入库端复用高拍仪）',price:'约 0.2–0.4 万 / 站',kind:'人机协同 · 入库纠错',
+   why:'面单 + 尺寸 + 摆放位置识别，上架当场判错格口，比事后盘查省人力。',
+   pts:['错分在入库口即被拦截','大件需相邻双格口，超界当场提示','漏读件进入待补清单，不静默丢单']},
+  {lv:'分层',name:'关键格口称重/红外 + 出口复核',price:'约 1.5–2.5 万 / 站',kind:'人机协同 · 防盗防错',
+   why:'只在大件/生鲜/高价值格口装传感器，其余靠出口一道复核兜底，比每格都装便宜。',
+   pts:['称重下降 + 红外遮挡才允许出库','未核验带出 → 出口门禁拦截','异常件冻结 + 事件前后 120 秒视频留存']},
+  {lv:'配合',name:'RFID 整筐批量入库',price:'约 2–4 万 / 站',kind:'进阶 · 可选升级',
+   why:'标签/周转筐批量读取，免逐件扫码逐件夹灯条；后续可再叠智能隔板。',
+   pts:['整筐 8 件一次读取，均耗 0.4 秒/件','标签-面单-格口三者自动绑定','灯条易丢易损问题从根上减少']},
+  {lv:'对照',name:'全格口传感器 / 智能柜',price:'约 4–7 万 / 站',kind:'另一条路 · 成本更高',
+   why:'每个格口都装传感器或改造成柜机，隔离最彻底但投入与场地改造代价大，异形大件仍难容纳。',
+   pts:['柜机格口尺寸受限，大件/异形进不去','需改门店场地，回收周期长','适合日均件量高、年轻用户为主的点位']},
+  {lv:'对照',name:'基础无人化（门禁 + 出库仪）',price:'约 1.5–2.5 万 / 站',kind:'另一条路 · 有盲区',
+   why:'只解决「人不在也能取」，系统只知道谁进谁出，中间拿了什么是盲区，拿错率反而高于人工。',
+   pts:['找件仍需 3–5 分钟，高峰期互相干扰','缺乏包裹级匹配，错取难追溯','本方案的传感 + 出口复核正是补这段盲区']},
+  {lv:'核心',name:'反绑架与合规开关',price:'0 元 · 策略项',kind:'人机协同 · 必开',
+   why:'把「强制装 App / 绑广告」这条路彻底堵掉，取件方式由用户选。',
+   pts:['三通道并行，不强制下载任何 App','广告位默认关闭，可一键模拟弹出对照','取件码不语音朗读，防旁听冒领']}
+];
+function renderCost(){
+  els.costGrid.textContent='';
+  BOM.forEach(b=>{
+    const c=document.createElement('div');c.className='bom '+(/核心/.test(b.lv)?'p0':/协同/.test(b.lv)?'p1':/分层/.test(b.lv)?'p2':'p3');
+    const h=document.createElement('h3');
+    const t=document.createElement('span');t.textContent=b.name;
+    const e=document.createElement('em');e.textContent=b.lv;
+    h.append(t,e);
+    const k=document.createElement('div');k.className='pill';k.textContent=b.kind;
+    const p=document.createElement('div');p.className='price';p.textContent=b.price;
+    const w=document.createElement('p');w.textContent=b.why;
+    const ul=document.createElement('ul');
+    b.pts.forEach(x=>{const li=document.createElement('li');li.textContent=x;ul.append(li);});
+    c.append(h,k,p,w,ul);
+    els.costGrid.append(c);
+  });
+  els.costRef.textContent='【路线对比】无人驿站：完全无人、单站高投入、受格口尺寸限制；本方案：一人值守 + 用户自助，单站低投入、全件型兼容。两条路线各解决不同场景，不是替代关系。'
+    + '现实参照（公开报道口径，用于对照，非本项目实测）：'
+    + '① 灯条驿站已于 2024 年 10 月在全国 100 多个城市上线，单店并发受限于 7 种灯色，超过 7 人同时取件必然撞色（来源：澎湃新闻 2024-10-28 / 菜鸟驿站官方 2024-10-23）。'
+    + '② 用户集中吐槽：满屋子灯同时闪且齐响、为突出灯条把照明调暗、灯条被相邻包裹遮挡只能听声找位、灯条没电或丢失即无法自助取件、限时到点熄灯需重扫、误按出库要重新入库等十几分钟、丢失灯条被要求赔付 30 元（来源：凤凰网/微信公众平台用户反馈 2024-2025）。'
+    + '③ 驿站曾因「不下载淘宝/菜鸟 App 就不能取件」被投诉，律师指出涉嫌违反消费者权益保护法关于公平交易的规定，工信部 2023 年 26 条措施亦明确不得强制下载 App（来源：中国网/正义网 2024-10-29）。'
+    + '④ 智能设备语音播报扰民与隐私泄露已成投诉热点，小区快递柜在扰民榜排名第二，夜间 68.8 分贝案例见诸报道；主管部门建议夜间静音、降噪（来源：光明网 2025-06-19 / 浙江电视台 2024-11-21）。'
+    + '⑤ 投入区间参照：门禁+货架+出库仪基础无人化约 1.5–2.5 万，门禁+灯条货架+快递柜约 4–7 万（视柜机格口数），灯条电池需定期更换；智能隔板蜂鸣器声压级 88 分贝以上、内置 500mAh 电池续航约 420 天、蓝牙通信距离 20 米、旧货架适配率 85%、投件效率提升 40% 以上、取件错误率降至 0.3% 以下（来源：快宝驿站官网/官方知识库 2026-01 至 2026-08）。'
+    + '⑥ RFID/传感器方案可达称重精度 ±1 克、每秒 10 次采集，重量与光电组合可判定包裹是否真实被取走（来源：官方知识库 2026-01-07）。';
+}
+
+function refreshHwUI(){
+  const dot = $id('dotHw');
+  const txt = $id('txtHw');
+  if(!dot || !txt) return;
+  dot.className = 'dot on';
+  txt.textContent = '内置沙盘';
+  txt.style.color = '#86efac';
+}
+
+function bind(){
+  ['log','rack','occBar','ztHint','lightSummary','codeChips','queueBox','alarmBox','inResult','pickResult','inWaybill','inRecv','inTail',
+   'inSize','inPolicy','inTag','pkTag','anoTag','btnAllocate','btnRfid','btnPick','btnOut','btnSensor','btnUnlight','btnReplan',
+   'pickQuery','floor','pathNote','heat','heatTip','hmReal','hmWeek','btnClearLog','btnToggle','btnReset','btnNight','btnCostCalc',
+   'dotStatus','txtStatus','dotScanner','txtScanner','clock','mdLight','mdMax','mdSound','mdIn','mdVerify','whyLight','whySound','whyIn',
+   'guideCard','gdL1','gdL2','gdL3','costGrid','costRef',
+   'dotHw','txtHw','btnHwCfg','hwPanel',
+   'kStock','kIn','kInSec','kOut','kLit','kMax','kPend','kRisk','kAlarm','kTime','kStop'].forEach(k=>{els[k]=$id(k);});
+  els.btnAllocate.addEventListener('click',()=>{const p=doIntake(false);log2(p);refreshAll();renderChips();});
+  els.btnRfid.addEventListener('click',batchRfid);
+  els.btnPick.addEventListener('click',doPick);
+  els.btnOut.addEventListener('click',()=>outParcel(S.curId));
+  els.btnSensor.addEventListener('click',sensorTrigger);
+  els.btnUnlight.addEventListener('click',unlight);
+  els.btnReplan.addEventListener('click',()=>{planPath(S.curId);log('手动重新规划：按当前人流重算避堵路线','info');});
+  els.btnClearLog.addEventListener('click',()=>{els.log.textContent='';log('日志已清空','info');});
+  els.btnNight.addEventListener('click',()=>setNight(!S.night));
+  els.btnCostCalc.addEventListener('click',()=>{renderCost();log('已按当前开关重算分层投入','info');});
+  els.pickQuery.addEventListener('keydown',e=>{if(e.key==='Enter')doPick();});
+  els.inWaybill.addEventListener('keydown',e=>{if(e.key==='Enter'){const p=doIntake(false);log2(p);refreshAll();}});
+  document.querySelectorAll('[data-ano]').forEach(b=>b.addEventListener('click',()=>inject(b.dataset.ano)));
+  els.hmReal.addEventListener('click',()=>setMode('real'));
+  els.hmWeek.addEventListener('click',()=>setMode('week'));
+  els.heat.addEventListener('click',heatClick);
+  [els.mdLight,els.mdSound,els.mdIn].forEach(sel=>sel.addEventListener('change',syncModeText));
+  els.mdMax.addEventListener('change',()=>{promote();renderKpi();paintZone();renderQueue();});
+  els.mdVerify.addEventListener('change',()=>{
+    renderQueue();
+    log('出库核验强度切换为 '+els.mdVerify.options[els.mdVerify.selectedIndex].text
+      +(els.mdVerify.value==='light'?'（仅灯亮即销号，拿错也查不出来）':''),'warn');
+  });
+  els.btnToggle.addEventListener('click',()=>{
+    S.open=!S.open;
+    els.dotStatus.className='dot '+(S.open?'on':'off');
+    els.txtStatus.textContent=S.open?'营业中':'已闭店';
+    els.btnToggle.textContent=S.open?'暂停营业':'恢复营业';
+    log(S.open?'恢复营业：客流与到件模拟继续':'暂停营业：停止自动到件/取件，人工操作仍可用',S.open?'ok':'warn');
+    HW.screen(S.open?['营业中','请扫码或输入取件码']:['已闭店','请到自助屏操作']);
+  });
+  els.btnReset.addEventListener('click',()=>{seedDemo();log('已重置为初始演示数据','ok');});
+  let rto=0;
+  window.addEventListener('resize',()=>{clearTimeout(rto);rto=setTimeout(drawHeat,240);});
+  els.btnHwCfg.addEventListener('click',()=>{
+    const p = $id('hwPanel');
+    if(!p) return;
+    p.style.display = (p.style.display === 'none') ? '' : 'none';
+    log('硬件沙盘：' + (p.style.display==='none' ? '已隐藏' : '已显示'), 'info');
+  });
+}
+function syncModeText(){
+  const L=els.mdLight.value;
+  els.whyLight.textContent=L==='same'?'每人一色（7 色内不撞色），同区同节奏，靠节奏+颜色双重辨识'
+    :L==='chaos'?'极端情况演示：所有灯同色同频，并发时容易误拿'
+    :'灯带失效或被遮挡时的兜底：纯屏幕大字 + 地面动线，不依赖灯';
+  els.whySound.textContent=S.night?'夜间已静音：只留灯 + 屏，不广播、不播报取件码'
+    :(els.mdSound.value==='broadcast'?'全场广播模式：多人并发时相互干扰，且会泄露取件码':'仅目标格口短鸣一次，旁人几乎无感');
+  els.whyIn.textContent=els.mdIn.value==='rfid'?'RFID 整筐批量读取，约 0.4 秒/件，免逐件扫描夹灯'
+    :els.mdIn.value==='vision'?'面单+尺寸+摆放三要素识别，上架当场判错格口'
+    :'逐件扫码夹灯条约 8.2 秒/件，是大促积压的主因';
+  els.inTag.textContent=els.mdIn.options[els.mdIn.selectedIndex].text.slice(0,10);
+  renderQueue();
+}
+function setMode(m){
+  S.mode=m;
+  els.hmReal.className=m==='real'?'primary':'ghost';
+  els.hmWeek.className=m==='week'?'primary':'ghost';
+  drawHeat();
+  log('热力图切换：'+(m==='real'?'实时人流（驱动避堵动线）':'7 日时段（推算错峰建议）'),'info');
+}
+function startClock(){
+  const f=()=>{
+    els.clock.textContent=fmtTime(new Date());
+    const h=new Date().getHours();
+    const auto=h>=22||h<7;
+    if(auto!==S.night&&h>=0) setNight(auto);
+  };
+  f(); setInterval(f,20000);
+}
+bind(); setMode('real'); syncModeText(); renderCost(); seedDemo(); startClock();
+setInterval(tick,1200);
+refreshHwUI();
+log('智能驿站 · 人机协同取件方案 · 单文件演示：所有姓名/尾号/运单为浏览器内虚构数据，刷新即重置，不连接真实系统与任何真实影像','info');
+log('定位：与无人驿站并列的第二条路线 —— 用户端自助，店员端兜底，一个人管一家店','info');
+log('硬件沙盘：用户端灯/屏 + 店员端告警屏，页面内虚拟硬件已就绪，右上角可显示/隐藏','info');
+</script>
+</body>
+</html>
